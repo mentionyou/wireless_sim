@@ -9,7 +9,7 @@
 
 void Simulator::run()
 {
-    u_seconds endtime= pow(10,6);
+    u_seconds endtime= pow(10,8);
     while(!this->sim_queue.empty())
     {
         Event tmp_event=this->sim_queue.top();
@@ -17,8 +17,18 @@ void Simulator::run()
         {
             break;
         }
-        this->sch(tmp_event);
         this->sim_queue.pop();
+        
+        
+        extern Node Nodelist[size_of_Nodelist];
+        if(Nodelist[1].MAClayer.to_T_coll==1 || Nodelist[2].MAClayer.to_T_coll==1 || Nodelist[3].MAClayer.to_T_coll==1 )
+        {
+            cout<< Nodelist[1].MAClayer.to_T_coll <<Nodelist[2].MAClayer.to_T_coll<<Nodelist[3].MAClayer.to_T_coll<<endl;
+        }
+            
+        this->sch(tmp_event);
+        
+        cout<<"\n";
     }
 }
 
@@ -82,13 +92,14 @@ void Simulator::sch(const Event & event)
     else if(event.type==Sending_data_collision)
     {
         Node* sending_node= &Nodelist[event.nodeid];
+        
         if(sending_node->MAClayer.state==MAC_IDLE){
-            cout<<"not need to send be cause mac is IDLE"<<endl;
             return;
+//            //cout<<"not need to send be cause mac is IDLE"<<endl;
+//            //exit(-1);
         }
         
         sending_node->send_data_collision(event);
-
         for (int i=1;i<size_of_Nodelist;i++){
             if(i!= event.nodeid){
                 Node* receiving_node= &Nodelist[i];
@@ -97,55 +108,58 @@ void Simulator::sch(const Event & event)
         }
     }
     
-    //    else if(event.type== Sending_ack)
-    //    {
-    //        if (!check_available(event)) {
-    //            return;
-    //        }
-    //
-    //        Node* sending_node= &Nodelist[event.nodeid];
-    //        ACK on_channel_ack;
-    //        on_channel_ack = sending_node->send_ack(event);
-    //        for (int i=1;i<size_of_Nodelist;i++)
-    //        {
-    //            if(i!= event.nodeid)
-    //            {
-    //                Node* receiving_node= &Nodelist[i];
-    //                receiving_node->receive_ack(event,on_channel_ack);
-    //            }
-    //        }
-    //    }
-    //
-    //    else if(event.type==Sending_ack_end)
-    //    {
-    //        if (!check_available(event)) {
-    //            return;
-    //        }
-    //        Node* sending_node= &Nodelist[event.nodeid];
-    //        ACK on_channel_ack= sending_node->send_ack_end(event);
-    //        for (int i=1;i<size_of_Nodelist;i++)
-    //        {
-    //            if(i!= event.nodeid)
-    //            {
-    //                Node* receiving_node= &Nodelist[i];
-    //                receiving_node->receive_ack_end(event,on_channel_ack);
-    //            }
-    //        }
-    //    }
-    //
-    //    else if(event.type==Sending_ack_collision)
-    //    {
-    //        Node* sending_node= &Nodelist[event.nodeid];
-    //        sending_node->send_ack_collision(event);
-    //        for (int i=1;i<size_of_Nodelist;i++)
-    //        {
-    //            if(i!= event.nodeid)
-    //            {
-    //                Node* receiving_node= &Nodelist[i];
-    //                receiving_node->receive_ack_collision(event);
-    //            }
-    //        }
-    //    }
+    else if(event.type== Sending_ack)
+    {
+        if (!check_available(event)) {
+            return;
+        }
+        
+        Node* sending_node= &Nodelist[event.nodeid];
+        ACK on_channel_ack= sending_node->send_ack(event);
+        
+        for (int i=1;i<size_of_Nodelist;i++)
+        {
+            if(i!= event.nodeid)
+            {
+                Node* receiving_node= &Nodelist[i];
+                receiving_node->receive_ack(event,on_channel_ack);
+            }
+        }
+    }
+    
+    else if(event.type== Sending_ack_end)
+    {
+        if (!check_available(event)) {
+            return;
+        }
+        
+        Node* sending_node= &Nodelist[event.nodeid];
+        ACK on_channel_ack= sending_node->send_ack_end(event);
+        
+        for (int i=1;i<size_of_Nodelist;i++)
+        {
+            if(i!= event.nodeid)
+            {
+                Node* receiving_node= &Nodelist[i];
+                receiving_node->receive_ack_end(event,on_channel_ack);
+            }
+        }
+    }
+    
+    else if(event.type==Sending_ack_collision)
+    {
+        Node* sending_node= &Nodelist[event.nodeid];
+        sending_node->send_ack_collision(event);
+        for (int i=1;i<size_of_Nodelist;i++)
+        {
+            if(i!= event.nodeid)
+            {
+                Node* receiving_node= &Nodelist[i];
+                receiving_node->receive_ack_collision(event);
+            }
+        }
+    }
+    
     
     else if(event.type==Inner_node)
     {

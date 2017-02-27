@@ -37,7 +37,7 @@ bool PHY::phy_able_to_receive()
 
 void PHY::phy_send()
 {
-    if(phy_able_to_send())
+    if(tx_state==PHY_IDLE)
         tx_state=PHY_BUSY;
     else
     {

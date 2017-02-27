@@ -65,19 +65,18 @@ public:
     void send_data_collision(const Event &);
     void receive_data_collision(const Event &);
     
-//    ACK send_ack(const Event &);
-//    void receive_ack(const Event&, const ACK & );
-//    
-//    ACK send_ack_end(const Event &);
-//    void receive_ack_end(const Event &, const ACK&);
-//    
-//    void send_ack_collision(const Event &);
-//    void receive_ack_collision(const Event &);
+    ACK send_ack(const Event &);
+    void receive_ack(const Event&, const ACK & );
+    
+    ACK send_ack_end(const Event &);
+    void receive_ack_end(const Event &, const ACK &);
+    
+    void send_ack_collision(const Event &);
+    void receive_ack_collision(const Event &);
     
     void generate_data(const Event&);
     void generate_data();
 
-    
 };
 
 

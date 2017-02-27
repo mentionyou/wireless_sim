@@ -22,7 +22,7 @@ Node Nodelist[size_of_Nodelist]; // 0 is not used
 Simulator sim;
 random_number ran_generator;
 int unique_id;
-int success,failed,collided,fd;
+int success,failed,T_coll,R_coll,fd_op,fd_suc;
 int loc[11][2]={ {0,0},{1,-2},{1,-1},{1,0},{1,1},{1,2},{-1,-2},{-1,-1},{-1,0},{-1,1},{-1,2} };
 
 
@@ -43,14 +43,19 @@ int main(int argc, const char * argv[]) {
     
     success=0;
     failed=0;
-    collided=0;
-    fd=0;
+    T_coll=0;
+    R_coll=0;
+    fd_op=0;
+    fd_suc=0;
     
-    //Start sim
+    
+    Event event;
+    
     sim.run();
     
-    cout<<"success:"<<success<<"; failed:"<<failed<<"; collided:"<<collided<<"; FD:"<<fd<<endl;
-    cout<<"FD ratio:"<< ((double)fd/(failed+success)) <<endl;
-    cout<<"collided ratio:"<<((double)collided/(failed+success+collided))<<endl;
+    
+    cout<<"Success:"<<success<<"; Failed:"<<failed<<"; T collided:"<<T_coll<< "; R collided:"<<R_coll<<"; FD_OP:"<<fd_op<<"; FD_SUC:"<<fd_suc<<endl;
+    cout<<"FD ratio:"<< ((double)fd_suc*2/(failed+success)) <<endl;
+    cout<<"collided ratio:"<<((double)(T_coll+R_coll)/(failed+success+T_coll +R_coll))<<endl;
     return 0;
 }

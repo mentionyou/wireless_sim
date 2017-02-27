@@ -17,15 +17,19 @@
 
 
 #define MAC_IDLE 0
-#define BFD_PT 1
-#define BFD_ST 2
-#define DBFD_PT 3
-#define DBFD_ST 4
-#define DBFD_SR 5
-#define SBFD_PT 6
-#define SBFD_ST 7
-#define SBFD_PR 8
-#define MAC_BUSY 9
+
+#define BFD_PT 11
+#define BFD_ST 12
+
+#define DBFD_PT 21 //simple——T
+#define DBFD_ST 22
+#define DBFD_SR 23
+
+#define SBFD_PT 31
+#define SBFD_ST 32
+#define SBFD_PR 33
+
+#define MAC_BUSY 100
 
 
 
@@ -40,15 +44,24 @@ public:
     ~MAC(){};
     
     vector <DATA> m_queue;
-    int state;
+    vector<DATA>::iterator iter;
     address m_adrress;
     address peer; // the node, expeceted to receive DATA from
     address dst; // the node,  expeceted to receive ACK from
-    bool freeze_flag;
     
     void* node;
+    
+    int state;
+    
+    bool freeze_flag;
     int backoff_count;
-    vector<DATA>::iterator iter;
+    void freeze(int);
+    
+    bool to_send_ack;
+    bool to_busy;
+    bool to_T_coll;
+    bool to_FD;
+    
     
     void mac_generate_send_data_event(u_seconds);
     void mac_generate_send_data_event();
@@ -58,9 +71,8 @@ public:
     void mac_generate_inner_node_event();
     
     
-    bool mac_is_collision(const DATA &);
+    bool mac_is_collision(address);
     bool have_data(address);
-    
     
     void mac_generate_data();
     void mac_pop_data();
@@ -74,19 +86,18 @@ public:
     void mac_send_ack_collision();
     
     
-    
     void mac_receive_data(const DATA&);
     void mac_receive_data_end(const DATA&);
     void mac_receive_data_collision(const Event&);
-    void mac_receive_ack(const DATA &);
-    void mac_receive_ack_end(const DATA &);
-    void mac_receive_ack_collision(const Event&);
-    
+    void mac_receive_ack(const ACK &);
+    void mac_receive_ack_end(const ACK &);
+    void mac_receive_ack_collision(const Event &);
     
     
     DATA get_data();
-    void freeze(int);
-    void unfreeze();
+    ACK  get_ack();
+   
+    ///// state motivated
     
     
 private:
@@ -95,13 +106,11 @@ private:
     int CW;
 };
 
-
 class random_number
 {
 public:
     random_number();
     int ran();
 };
-
 
 #endif /* MAC_h */
