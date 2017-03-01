@@ -71,9 +71,7 @@ public:
     void mac_generate_inner_node_event();
     
     
-    bool mac_is_collision(address);
     bool have_data(address);
-    
     void mac_generate_data();
     void mac_pop_data();
     
@@ -102,7 +100,7 @@ public:
     
 private:
     int CWmin=32;
-    int CWmax=256;
+    int CWmax=1024;
     int CW;
 };
 

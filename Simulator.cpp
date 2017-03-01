@@ -9,7 +9,7 @@
 
 void Simulator::run()
 {
-    u_seconds endtime= pow(10,8);
+    u_seconds endtime= pow(10,7);
     while(!this->sim_queue.empty())
     {
         Event tmp_event=this->sim_queue.top();
@@ -19,16 +19,15 @@ void Simulator::run()
         }
         this->sim_queue.pop();
         
+//        extern Node Nodelist[size_of_Nodelist];
+//        if(Nodelist[1].MAClayer.to_T_coll==1 || Nodelist[2].MAClayer.to_T_coll==1 || Nodelist[3].MAClayer.to_T_coll==1 )
+//        {
+//            cout<< Nodelist[1].MAClayer.to_T_coll <<Nodelist[2].MAClayer.to_T_coll<<Nodelist[3].MAClayer.to_T_coll<<endl;
+//        }
         
-        extern Node Nodelist[size_of_Nodelist];
-        if(Nodelist[1].MAClayer.to_T_coll==1 || Nodelist[2].MAClayer.to_T_coll==1 || Nodelist[3].MAClayer.to_T_coll==1 )
-        {
-            cout<< Nodelist[1].MAClayer.to_T_coll <<Nodelist[2].MAClayer.to_T_coll<<Nodelist[3].MAClayer.to_T_coll<<endl;
-        }
-            
         this->sch(tmp_event);
         
-        cout<<"\n";
+        //cout<<"\n";
     }
 }
 

@@ -26,8 +26,8 @@ public:
     int rx_state;// IDLE, BUSY, COLLISION
     
     
-    bool phy_able_to_send();
-    bool phy_able_to_receive();
+//    bool phy_able_to_send();
+//    bool phy_able_to_receive();
     
     void phy_send();
     void phy_receive(const Event&);

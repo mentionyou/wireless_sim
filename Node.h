@@ -6,14 +6,17 @@
 //  Copyright © 2016年 段荣昌. All rights reserved.
 //
 
+
+#ifndef Node_h
+#define Node_h
+
 #include "Event.h"
 #include "PHY.h"
 #include "MAC.h"
 #include "Packet.h"
 #include "Simulator.h"
+#include "Common.h"
 
-#ifndef Node_h
-#define Node_h
 
 
 #define Node_IDLE 0
@@ -29,8 +32,8 @@ public:
     Node();
     ~Node(){};
     
-    int nodeid;//node id
-    int x,y;// location
+    int nodeid;   //node id
+    int x,y;      //location
     int power;
     u_seconds current_t;
     
@@ -39,6 +42,8 @@ public:
     Event next_sending_event;
     int node_state;
     
+    int neighbour[size_of_Nodelist];
+    int num_bour;
     
     
 public:

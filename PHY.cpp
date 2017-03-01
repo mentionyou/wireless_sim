@@ -21,19 +21,19 @@ PHY::PHY()
     this->index=0;
 }
 
-bool PHY::phy_able_to_send()
-{
-    if(tx_state==PHY_IDLE && rx_state!=PHY_COLLISION)
-        return true;
-    return false;
-}
-
-bool PHY::phy_able_to_receive()
-{
-    if(rx_state==PHY_IDLE && index ==0)
-        return true;
-    return false;
-}
+//bool PHY::phy_able_to_send()
+//{
+//    if(tx_state==PHY_IDLE && rx_state!=PHY_COLLISION)
+//        return true;
+//    return false;
+//}
+//
+//bool PHY::phy_able_to_receive()
+//{
+//    if(rx_state==PHY_IDLE && index ==0)
+//        return true;
+//    return false;
+//}
 
 void PHY::phy_send()
 {
@@ -48,7 +48,6 @@ void PHY::phy_send()
 
 void PHY::phy_receive(const Event & event)
 {
-    
     if(rx_state==PHY_IDLE)
         rx_state=PHY_BUSY;
     else if (rx_state==PHY_BUSY)
