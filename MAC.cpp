@@ -60,6 +60,7 @@ MAC::MAC()
     this->freeze_flag=0;
     this->to_send_ack=0;
     this->to_busy=0;
+    
     this->to_T_coll=0;
     
     this->num_bour=0;
@@ -185,26 +186,6 @@ void MAC::mac_send_data()
             exit(2);
         }
     }
-//    else if( this->state==DBFD_PT || this->state ==DBFD_ST || this->state== DBFD_SR)
-//    {
-//        if(this->state==DBFD_ST)
-//            return;
-//        else
-//        {
-//                cout<<"MAC::send data error"<<endl;
-//                exit(3);
-//        }
-//    }
-//    else if( this->state==SBFD_PT || this->state ==SBFD_ST || this->state== SBFD_PR)
-//    {
-//        if(this->state==SBFD_ST)
-//            return;
-//        else
-//        {
-//            cout<<"MAC::send data error"<<endl;
-//            exit(4);
-//        }
-//    }
     
     else
     {
