@@ -17,7 +17,7 @@
 
 #define  SLOT 20
 #define  RATE 1 /// 1b in 1 us
-#define  PACKETS_IN_1_SECONDS   0.1
+#define  PACKETS_IN_1_SECONDS   10
 #define  DIFS 50
 #define  SIFS 10
 

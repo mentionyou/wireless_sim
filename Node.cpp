@@ -20,11 +20,9 @@ Node::Node()
     this->x=0;
     this->y=0;
     this->power=120;
-    this->num_bour=0;
     this->MAClayer.node=this;
     this->PHYlayer.node=this;
     this->node_state=Node_IDLE;
-    memset(this->neighbour, size_of_Nodelist, sizeof(int));
 };
 
 //start
@@ -65,7 +63,6 @@ void Node::generate_sending_data_end_event(u_seconds t)
     event.type=Sending_data_end;
     event.uid=unique_id;
     unique_id++;
-    
     this->next_sending_event=event;
     sim.add(event);
 }
@@ -74,7 +71,6 @@ void Node::generate_sending_data_collision_event(u_seconds t)
 {
     extern int unique_id;
     extern Simulator sim;
-    
     Event event;
     
     event.nodeid = this->nodeid;
@@ -82,7 +78,6 @@ void Node::generate_sending_data_collision_event(u_seconds t)
     event.type=Sending_data_collision;
     event.uid=unique_id;
     unique_id++;
-    
     sim.add(event);
 }
 
@@ -97,7 +92,6 @@ void Node::generate_sending_ack_event(u_seconds t)
     event.type=Sending_ack;
     event.uid=unique_id;
     unique_id++;
-    
     this->next_sending_event=event;
     sim.add(event);
 }
@@ -113,7 +107,6 @@ void Node::generate_sending_ack_end_event(u_seconds t)
     event.type=Sending_ack_end;
     event.uid=unique_id;
     unique_id++;
-    
     this->next_sending_event=event;
     sim.add(event);
 }
@@ -122,14 +115,13 @@ void Node::generate_sending_ack_collision_event(u_seconds t)
 {
     extern int unique_id;
     extern Simulator sim;
-    
     Event event;
+    
     event.nodeid = this->nodeid;
     event.t=current_t+t;
     event.type=Sending_ack_collision;
     event.uid=unique_id;
     unique_id++;
-    
     sim.add(event);
 }
 
@@ -145,7 +137,6 @@ void Node::generate_inner_node_event(u_seconds t)
     event.uid=unique_id;
     unique_id++;
     sim.add(event);
-    //cout<<t<<" ";
 }
 
 /////////////// tmp functions
@@ -245,7 +236,8 @@ void Node::receive_data(const Event & event, const DATA & data)
     
     if(mac->state==MAC_BUSY && this->next_sending_event.t !=0)
     {
-        cout<<"Node::Node "<<this->nodeid<<" shold not send when it is busy"<<endl;
+        cout<<"Node::Node "<<this->nodeid<<" should not send when it is busy"<<endl;
+        cout<< this->next_sending_event.t << "::" <<this->next_sending_event.type<<endl;
         exit(-1);
     }
     

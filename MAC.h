@@ -13,6 +13,7 @@
 #include "Packet.h"
 #include "Event.h"
 #include "Packet.h"
+#include "Common.h"
 #include <queue>
 
 
@@ -48,19 +49,24 @@ public:
     address m_adrress;
     address peer; // the node, expeceted to receive DATA from
     address dst; // the node,  expeceted to receive ACK from
+    int state;
+    
+    int backoff_count;
+    
+    int num_bour;
+    int neighbour[size_of_Nodelist][3];
+    //[0], neighbour node id;
+    //[1], does the node have data for me?
+    //[2], does the node have data to send to another node, in order to build FD?
     
     void* node;
     
-    int state;
-    
-    bool freeze_flag;
-    int backoff_count;
     void freeze(int);
     
-    bool to_send_ack;
-    bool to_busy;
-    bool to_T_coll;
-    bool to_FD;
+    bool freeze_flag;
+    bool to_send_ack;  ///  a flag i
+    bool to_busy;   //// a flag to set a node into MAC_BUSY mode.   in short, to
+    bool to_T_coll; //// a flag to calculate T_coll
     
     
     void mac_generate_send_data_event(u_seconds);

@@ -14,6 +14,7 @@
 #include "MAC.h"
 #include "Common.h"
 #include <cmath>
+#include <fstream>
 
 
 using namespace std;
@@ -37,6 +38,8 @@ bool dist_(int a, int b) // nodeid a,b
 
 int main(int argc, const char * argv[]) {
     
+    freopen("outa.txt","w",stdout);
+    
     unique_id=1;
     address tmp= (1<<10);
     int loc[11][2]={{0,0},{1,-2},{1,-1},{1,0},{1,1},{1,2},{-1,-2},{-1,-1},{-1,0},{-1,1},{-1,2}};
@@ -57,20 +60,13 @@ int main(int argc, const char * argv[]) {
                 continue;
             if(dist_(i,j))
             {
-                Nodelist[i].num_bour++;
-                int k=Nodelist[i].num_bour;
-                Nodelist[i].neighbour[k]=j;
+                Nodelist[i].MAClayer.num_bour++;
+                int k=Nodelist[i].MAClayer.num_bour;
+                Nodelist[i].MAClayer.neighbour[k][0]=j;
             }
         }
         Nodelist[i].start(0);
     }
-    
-//    for (int i=1; i<size_of_Nodelist;i++)
-//    {
-//        cout<< Nodelist[i].num_bour<<" ";
-//        cout<< Nodelist[i].neighbour[Nodelist[i].num_bour]<<endl ;
-//    }
-//    
     
     
     success=0;
@@ -79,18 +75,6 @@ int main(int argc, const char * argv[]) {
     R_coll=0;
     fd_op=0;
     fd_suc=0;
-    
-    
-    //    Event event;
-    //    for(int i=1;i<size_of_Nodelist;i++)
-    //    {
-    //        cout<<i<<":";
-    //        for(int j=1;j<size_of_Nodelist;j++)
-    //        {
-    //            cout<<dist_(i,j);
-    //        }
-    //        cout<<endl;
-    //    }
     
     sim.run();
     
