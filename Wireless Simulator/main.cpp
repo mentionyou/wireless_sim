@@ -14,6 +14,7 @@
 #include "MAC.h"
 #include "Common.h"
 #include <cmath>
+#include <fstream>
 
 
 using namespace std;
@@ -37,6 +38,8 @@ bool dist_(int a, int b) // nodeid a,b
 
 int main(int argc, const char * argv[]) {
     
+    freopen("outa.txt","w",stdout);
+    
     unique_id=1;
     address tmp= (1<<10);
     int loc[11][2]={{0,0},{1,-2},{1,-1},{1,0},{1,1},{1,2},{-1,-2},{-1,-1},{-1,0},{-1,1},{-1,2}};
@@ -57,13 +60,14 @@ int main(int argc, const char * argv[]) {
                 continue;
             if(dist_(i,j))
             {
-                Nodelist[i].num_bour++;
-                int k=Nodelist[i].num_bour;
-                Nodelist[i].neighbour[k]=j;
+                Nodelist[i].MAClayer.num_bour++;
+                int k=Nodelist[i].MAClayer.num_bour;
+                Nodelist[i].MAClayer.neighbour[k][0]=j;
             }
         }
         Nodelist[i].start(0);
     }
+    
     
     success=0;
     failed=0;
@@ -77,6 +81,5 @@ int main(int argc, const char * argv[]) {
     cout<<"Success:"<<success<<"; Failed:"<<failed<<"; T collided:"<<T_coll<< "; R collided:"<<R_coll<<"; FD_OP:"<<fd_op<<"; FD_SUC:"<<fd_suc<<endl;
     cout<<"FD ratio:"<< ((double)fd_suc*2/(failed+success)) <<endl;
     cout<<"collided ratio:"<<((double)(T_coll+R_coll)/(failed+success+T_coll +R_coll))<<endl;
-    
     return 0;
 }

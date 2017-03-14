@@ -6,12 +6,11 @@
 //  Copyright © 2016年 段荣昌. All rights reserved.
 //
 
-
+#include "Common.h"
 #include "MAC.h"
 #include "Event.h"
 #include "Node.h"
 #include "Simulator.h"
-#include "Common.h"
 #include <iostream>
 #include <math.h>
 
@@ -57,12 +56,15 @@ MAC::MAC()
     
     this->peer=0;
     this->dst=0;
-    this->freeze_flag=0;
     
+    this->freeze_flag=0;
     this->to_send_ack=0;
     this->to_busy=0;
+    
     this->to_T_coll=0;
-    this->to_FD=0;
+    
+    this->num_bour=0;
+    memset(this->neighbour, size_of_Nodelist, sizeof(int)*3);
 }
 
 /////////generate events
@@ -138,10 +140,10 @@ void MAC::mac_generate_data()
     extern random_number ran_generator;
     DATA tmp_data;
     int tmp_index;
-    Node* node= (Node*)this->node;
+
     
-    tmp_index=  (ran_generator.ran()% (node->num_bour) ) + 1;
-    address dst= (1<<10)+node->neighbour[tmp_index];
+    tmp_index=  (ran_generator.ran()% (this->num_bour) ) + 1;
+    address dst= (1<<10)+this->neighbour[tmp_index][0];
     
     tmp_data.source=this->m_adrress;
     tmp_data.destination=dst;
@@ -176,23 +178,15 @@ void MAC::mac_send_data()
     }
     else if(this->state==BFD_PT || this->state==BFD_ST)
     {
-        if(this->state==BFD_PT)
+        if (this->state==BFD_ST)
+                return;
+        else
         {
             cout<<"MAC::send data error"<<endl;
             exit(2);
         }
-        else if (this->state==BFD_ST)
-            return;
-        else
-        {
-            cout<<"MAC::send data error"<<endl;
-            exit(3);
-        }
     }
-    else if( this->state==DBFD_PT || this->state ==DBFD_ST || this->state== DBFD_SR)
-    {
-        //// to be added
-    }
+    
     else
     {
         cout<<"MAC::send data error"<<endl;
@@ -290,13 +284,14 @@ void MAC::mac_receive_data(const DATA& data)
     {
         if(! (this->peer==data.source && this->m_adrress== data.destination))
         {
-            if((*iter).destination == this->peer)
+            if((*iter).destination == this->peer)  //// if BFD_ST sends, it is true, and if BFD_ST doesn't , it is not. &
+                                                    //// BFD_PT is always true
             {
                 extern int T_coll;
                 T_coll++;
                 Node* node=(Node*)this->node;
                 cout<<"T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
-            }            
+            }
             this->state=MAC_BUSY;
             this->peer=0;
             this->dst=0;
@@ -334,6 +329,7 @@ bool MAC::have_data(address dst)
             return true;
         }
     }
+    
     this->iter=this->m_queue.begin();
     this->to_busy=1;
     return false;
@@ -354,7 +350,7 @@ void MAC::freeze(int count)
         {
             backoff_count = count;
         }
-        cout<<"MAC::Node"<<this->m_adrress-(1<<10)<<" backoff count freeze to "<<count<<endl;
+        cout<<"MAC::Node"<<this->m_adrress-(1<<10)<<" backoff count freeze to "<<backoff_count <<endl;
     }
 }
 
@@ -606,26 +602,27 @@ void MAC::mac_send_ack_end()
 {
     if(this->state==MAC_IDLE)
     {
-        cout<<"MAC::error"<<endl;
+        cout<<"MAC::send_ack_end error"<<endl;
         exit(-1-8);
     }
-    
     else if(this->state==MAC_BUSY)
     {
-        cout<<"MAC::error"<<endl;
+        cout<<"MAC::send_ack_end error"<<endl;
         exit(-1-9);
     }
+    
     else if(this->state==BFD_PT || this->state ==BFD_ST)
     {
         if(this->to_busy==1)   /////// currently BFD == DBFD
         {
             this->state=MAC_BUSY;
+            this->to_busy=0;
             this->to_send_ack=0;
         }
     }
     else
     {
-        cout<<"MAC::error"<<endl;
+        cout<<"MAC::send_ack_end error"<<endl;
         exit(-1-10);
     }
 }
@@ -635,7 +632,7 @@ void MAC::mac_receive_ack_end(const ACK & ack)
     Node* node= (Node*) this->node;
     PHY* phy = &(node->PHYlayer);
     
-    if(this->state==MAC_IDLE ||this->state==MAC_BUSY){
+    if(this->state==MAC_IDLE || this->state==MAC_BUSY){
         return;
     }
     else if(this->state==BFD_ST || this->state==BFD_PT)
@@ -645,7 +642,6 @@ void MAC::mac_receive_ack_end(const ACK & ack)
             extern int success;
             success++;
             cout<<"SUCCESS:"<<success<<endl;
-            
             CW=CWmin;
             cout<< "MAC::Node"<< (m_adrress-(1<<10)) <<", CW back to " << CW << endl;
             
@@ -656,7 +652,7 @@ void MAC::mac_receive_ack_end(const ACK & ack)
                 cout<<"FD SUC:"<<fd_suc<<endl;
             }
             
-            if(phy->tx_state==PHY_IDLE && phy->rx_state==PHY_IDLE)
+            if(phy->tx_state == PHY_IDLE && phy->rx_state==PHY_IDLE)
                 this->state=MAC_BUSY;
             else
             {
@@ -665,7 +661,7 @@ void MAC::mac_receive_ack_end(const ACK & ack)
         }
         else
         {
-            cout<<"MAC::Error"<<endl;
+            cout<<"MAC::receive_ack_end error"<<endl;
             exit(-1);
         }
     }
@@ -674,9 +670,9 @@ void MAC::mac_receive_ack_end(const ACK & ack)
 
 void MAC::mac_send_ack_collision()
 {
-    if(this->state!= MAC_BUSY)
+    if(this->state != MAC_BUSY)
     {
-        cout<<"MAC::error"<<endl;
+        cout<<"MAC::send_ack_collision error"<<endl;
         exit(-1-11);
     }
 }

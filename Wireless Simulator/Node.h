@@ -42,10 +42,6 @@ public:
     Event next_sending_event;
     int node_state;
     
-    int neighbour[size_of_Nodelist];
-    int num_bour;
-    
-    
 public:
     void start(u_seconds t);//start at time(t)
     
