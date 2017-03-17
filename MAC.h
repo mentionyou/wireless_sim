@@ -64,15 +64,18 @@ public:
     void freeze(int);
     
     bool freeze_flag;
-    bool to_send_ack;  ///  a flag i
-    bool to_busy;   //// a flag to set a node into MAC_BUSY mode.   in short, to
-    bool to_T_coll; //// a flag to calculate T_coll
+    bool to_T_coll;    //// a flag to calculate T_coll
+    bool to_send_ack;  //// a flag i
+    bool to_busy;      //// a flag to set a node into MAC_BUSY mode.
+    bool cwfix;      ////  a flag to indicate cw not increase when collide.
     
     
-    void mac_generate_send_data_event(u_seconds);
     void mac_generate_send_data_event();
+    void mac_generate_send_data_event(u_seconds);
+    void mac_generate_send_data_end_event(u_seconds);
     void mac_generate_send_data_collision_event(u_seconds);
     void mac_generate_send_ack_event(u_seconds);
+    void mac_generate_send_ack_end_event(u_seconds);
     void mac_generate_send_ack_collision_event(u_seconds);
     void mac_generate_inner_node_event();
     
@@ -80,6 +83,7 @@ public:
     bool have_data(address);
     void mac_generate_data();
     void mac_pop_data();
+    void set_mac_busy();
     
     
     void mac_send_data(); // action is related with MAC state
@@ -100,7 +104,7 @@ public:
     
     DATA get_data();
     ACK  get_ack();
-   
+    void sim_trans();
     ///// state motivated
     
     

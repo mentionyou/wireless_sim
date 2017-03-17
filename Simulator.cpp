@@ -9,23 +9,20 @@
 
 void Simulator::run()
 {
-    u_seconds endtime= pow(10,8);
+    u_seconds endtime= ENDTIME;
     while(!this->sim_queue.empty())
     {
         Event tmp_event=this->sim_queue.top();
-        if(tmp_event.t >= endtime)
-        {
-            break;
-        }
-        this->sim_queue.pop();
-        this->sch(tmp_event);
-        
 //        extern Node Nodelist[size_of_Nodelist];
 //        if(Nodelist[1].MAClayer.to_T_coll==1 || Nodelist[2].MAClayer.to_T_coll==1 || Nodelist[3].MAClayer.to_T_coll==1 )
 //        {
-//            cout<< Nodelist[1].MAClayer.to_T_coll <<Nodelist[2].MAClayer.to_T_coll<<Nodelist[3].MAClayer.to_T_coll<<endl;
+//            cout<< Nodelist[1].MAClayer.to_T_coll << Nodelist[2].MAClayer.to_T_coll<<Nodelist[3].MAClayer.to_T_coll<<endl;
 //        }
-//        cout<<"\n";
+        if(tmp_event.t >= endtime)
+            break;
+        this->sim_queue.pop();
+        this->sch(tmp_event);
+        cout<<endl;
     }
 }
 
@@ -145,6 +142,10 @@ void Simulator::sch(const Event & event)
     else if(event.type==Sending_ack_collision)
     {
         Node* sending_node= &Nodelist[event.nodeid];
+        if(sending_node->MAClayer.state==MAC_IDLE){
+            return;
+        }
+
         sending_node->send_ack_collision(event);
         for (int i=1;i<size_of_Nodelist;i++)
         {

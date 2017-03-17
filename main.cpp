@@ -7,15 +7,14 @@
 //
 
 #include <iostream>
+#include <cmath>
+#include <fstream>
 #include "Event.h"
 #include "Simulator.h"
 #include "Node.h"
 #include "Packet.h"
 #include "MAC.h"
 #include "Common.h"
-#include <cmath>
-#include <fstream>
-
 
 using namespace std;
 
@@ -24,7 +23,6 @@ Simulator sim;
 random_number ran_generator;
 int unique_id;
 int success,failed,T_coll,R_coll,fd_op,fd_suc;
-
 
 bool dist_(int a, int b) // nodeid a,b
 {
@@ -77,6 +75,8 @@ int main(int argc, const char * argv[]) {
     fd_suc=0;
     
     sim.run();
+    
+    ///T_COLL and R_COLL have same troubles.
     
     cout<<"Success:"<<success<<"; Failed:"<<failed<<"; T collided:"<<T_coll<< "; R collided:"<<R_coll<<"; FD_OP:"<<fd_op<<"; FD_SUC:"<<fd_suc<<endl;
     cout<<"FD ratio:"<< ((double)fd_suc*2/(failed+success)) <<endl;

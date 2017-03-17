@@ -44,7 +44,7 @@ u_seconds randomExponential(double lambda) // lambda packets generated in 100000
 MAC::MAC()
 {
     this->state=MAC_IDLE;
-    this->m_queue.reserve(150);//set the max length of queue;
+    this->m_queue.reserve(QUEUE_SIZE);//set the max length of queue;
     while (!this->m_queue.empty()) {
         this->m_queue.clear();
     }
@@ -53,16 +53,13 @@ MAC::MAC()
     this->m_adrress=0;
     this->node=NULL;
     this->iter=m_queue.begin();
-    
     this->peer=0;
     this->dst=0;
-    
     this->freeze_flag=0;
     this->to_send_ack=0;
     this->to_busy=0;
-    
     this->to_T_coll=0;
-    
+    this->cwfix=0;
     this->num_bour=0;
     memset(this->neighbour, size_of_Nodelist, sizeof(int)*3);
 }
@@ -87,15 +84,21 @@ void MAC::mac_generate_send_data_event()   /// start based on backoff
             cout<<"MAC::generate_send_event_error"<<endl;
             exit(-1);
         }
-        cout<<"MAC::Node"<<node->nodeid<<" restarts a backoff, from "<< backoff_count <<endl;
+       // cout<<"MAC::Node"<<node->nodeid<<" restarts a backoff, from "<< backoff_count <<endl;
     }
     else
     {
         this->backoff_count=random(CW);
-        cout<<"MAC::Node"<<node->nodeid<<" starts a new backoff, base on "<< this->CW <<" and current backoff is "<< this->backoff_count <<endl;
+        //cout<<"MAC::Node"<<node->nodeid<<" starts a new backoff, base on "<< this->CW <<" and current backoff is "<< this->backoff_count <<endl;
         node->generate_sending_data_event(DIFS+backoff_count*SLOT);
         return;
     }
+};
+
+void MAC::mac_generate_send_data_end_event(u_seconds t)  /// start based on FD transmission
+{
+    Node *node= (Node*) this->node;
+    node->generate_sending_data_end_event(t);
 };
 
 void MAC::mac_generate_send_data_collision_event(u_seconds t)
@@ -108,6 +111,12 @@ void MAC::mac_generate_send_ack_event(u_seconds t)
 {
     Node *node= (Node*) this->node;
     node->generate_sending_ack_event(t);
+}
+
+void MAC::mac_generate_send_ack_end_event(u_seconds t)
+{
+    Node *node= (Node*) this->node;
+    node->generate_sending_ack_end_event(t);
 }
 
 void MAC::mac_generate_send_ack_collision_event(u_seconds t)
@@ -124,26 +133,36 @@ void MAC::mac_generate_inner_node_event()
 
 ////////// handle
 
-
+void MAC::set_mac_busy()
+{
+    this->state=MAC_BUSY;
+    this->peer=0;
+    this->dst=0;
+    this->to_T_coll=0;
+    this->to_busy=0;
+    this->to_send_ack=0;
+    Node* node=(Node*) this->node;
+    node->next_sending_event.t=0;
+}
 
 ///////////inner node
 
 void MAC::mac_generate_data()
 {
-    if(m_queue.size()==150)
+    if(m_queue.size()==QUEUE_SIZE)
     {
-        cout<<"MAC::queue is full,drop packet"<<endl;
+//        cout<<"MAC::queue is full,drop packet"<<endl;
         this->mac_generate_inner_node_event();
         return;
     }
-    
     extern random_number ran_generator;
     DATA tmp_data;
     int tmp_index;
-
     
-    tmp_index=  (ran_generator.ran()% (this->num_bour) ) + 1;
-    address dst= (1<<10)+this->neighbour[tmp_index][0];
+   
+    tmp_index=  ( ran_generator.ran() % (this->num_bour)) + 1;
+    //cout<<"MAC::Node"<< this->m_adrress-(1<<10) <<" SEND to the "<<tmp_index<<"th neighbour"<<endl;
+    address dst= (1<<10)+ this->neighbour [tmp_index] [0];
     
     tmp_data.source=this->m_adrress;
     tmp_data.destination=dst;
@@ -170,17 +189,17 @@ void MAC::mac_send_data()
         this->state = BFD_PT; // BFD only now
         this->iter  = this->m_queue.begin();
         this->dst   = (*iter).destination;
+//        this->peer  = 0;
         this->peer  = (*iter).destination;
         
         // add the peer and type for a data packet.
-        (*iter).type=BFD_PT;
-        (*iter).peer=(*iter).destination;
+        (*iter).type = BFD_PT;
+        (*iter).peer = (*iter).destination;
     }
+    
     else if(this->state==BFD_PT || this->state==BFD_ST)
     {
-        if (this->state==BFD_ST)
-                return;
-        else
+        if (this->state != BFD_ST)
         {
             cout<<"MAC::send data error"<<endl;
             exit(2);
@@ -192,146 +211,164 @@ void MAC::mac_send_data()
         cout<<"MAC::send data error"<<endl;
         exit(-1);
     }
+    
+    int length_of_packet=(*iter).payload+HEADER;
+    this->mac_generate_send_data_end_event(length_of_packet/RATE);
+    
+}
+
+void MAC::sim_trans()
+{
+    if(this->to_T_coll==1)
+    {
+        this->to_T_coll=0;
+        this->set_mac_busy();
+        this->mac_generate_send_data_collision_event(0);
+        
+        extern int T_coll;
+        T_coll++;
+        Node* node=(Node*) this->node;
+        cout<<"same T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid<<endl;
+    }
 }
 
 void MAC::mac_receive_data(const DATA& data)
 {
-    Node* node=(Node*) this->node;
+    cout<<"MAC::Node"<<this->m_adrress-(1<<10) <<"("<<this->state<<")"<<endl;
+    
+    if(this->to_T_coll == 1){
+        Node* tmpnode= (Node*) node;
+        cout<<"NODE"<<tmpnode->nodeid<<" WAIT!!"<<endl;
+        return;
+    }
+    
     if(this->state==MAC_IDLE)
     {
-        if(this->m_adrress==data.destination)
+        if(this->m_adrress == data.destination)
         {
-            if(data.type==BFD_PT)
+            if(data.type == BFD_PT)
             {
-                this->state=BFD_ST;
-                this->peer=data.source;
-                this->dst=data.source;
-                
-                if(this->have_data(this->dst))
-                {
+                this->state = BFD_ST;
+                this->peer  = data.source;
+                if(this->have_data(data.source)){
                     this->mac_generate_send_data_event(HEADER/RATE);
+                    this->dst = data.source;
                 }
             }
-            //            else if(data.type==DBFD_PT)
-            //            {
-            //                this->state=DBFD_ST;
-            //                this->peer=data.source;
-            //                this->dst=0; // to be decide
-            //                this->mac_generate_send_data_event(HEADER/RATE);
-            //                cout<<"MAC::to be decided"<<endl;
-            //            }
-            //            else if(data.type==DBFD_ST)
-            //            {
-            //                this->state=DBFD_SR;
-            //                this->peer=data.source;
-            //                this->dst=0; // to be decide
-            //            }
-            //            else if(data.type==SBFD_PT)
-            //            {
-            //                this->state=SBFD_PR;
-            //                this->peer=data.source;
-            //                this->dst=0;
-            //                this->mac_generate_send_data_event(HEADER/RATE);
-            //                cout<<"MAC::to be decided"<<endl;
-            //            }
             else
             {
                 cout<<"MAC::receive data error"<<endl;
                 exit(-1);
             }
         }
-        
-        //        else if(this->m_adrress==data.peer)
-        //        {
-        //            if(data.type==SBFD_PT)
-        //            {
-        //                this->state=SBFD_ST;
-        //                this->peer=data.source;
-        //                this->dst=data.source;
-        //                this->mac_generate_send_data_event(HEADER/RATE);
-        //                cout<<"MAC::to be decided"<<endl;
-        //                exit(-1);
-        //            }
-        //            else
-        //            {
-        //                cout<<"MAC::error "<<endl;
-        //                exit(-1);
-        //            }
-        //        }
-        
         else
-        {
-            //            Node *tmp=(Node*) this->node;
-            //            cout<<"MAC::Node"<<tmp->nodeid <<" receive data to mac busy"<<endl;
-            this->state=MAC_BUSY;
-            this->peer=0;
-            this->dst=0;
-        }
+            this->set_mac_busy();
     }
     
     else if(this->state==MAC_BUSY)
     {
         if((data.type==BFD_PT || data.type==BFD_ST) && (data.destination==this->m_adrress|| data.peer== this->m_adrress))
         {
-            this->state=MAC_BUSY;
-            this->peer=0;
-            this->dst=0;
             this->mac_generate_send_data_collision_event(0);
         }
     }
     
     else if( (this->state==BFD_PT) || (this->state==BFD_ST) )
     {
-        if(! (this->peer==data.source && this->m_adrress== data.destination))
+//        if (this->state==BFD_PT)
+//        {
+//            if( this->m_adrress == data.destination && this->dst == data.source && data.type==BFD_ST)
+//            {
+//                this->peer =data.source;
+//            }
+//            else
+//            {
+//                extern int T_coll;
+//                T_coll++;
+//                Node* node=(Node*)this->node;
+//                cout<<"T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
+//                this->set_mac_busy();
+//                this->mac_generate_send_data_collision_event(0);
+//            }
+//        }
+//        else if (this->state == BFD_ST)
+//        {
+//            extern int T_coll;
+//            T_coll++;
+//            Node* node=(Node*)this->node;
+//            cout<<"T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
+//            this->set_mac_busy();
+//            this->mac_generate_send_data_collision_event(0);
+//        }
+        
+        if(! (this->peer == data.source && this->m_adrress == data.destination))
         {
-            if((*iter).destination == this->peer)  //// if BFD_ST sends, it is true, and if BFD_ST doesn't , it is not. &
-                                                    //// BFD_PT is always true
+            if(this->state==BFD_PT)
             {
                 extern int T_coll;
                 T_coll++;
                 Node* node=(Node*)this->node;
-                cout<<"T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
+                cout<<"PT T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
+                this->set_mac_busy();
+                this->mac_generate_send_data_collision_event(0);
+                return;
             }
-            this->state=MAC_BUSY;
-            this->peer=0;
-            this->dst=0;
-            node->next_sending_event.t=0;
+            else if (this->state==BFD_ST && (*iter).destination == this->peer )
+                //BFD_ST maynot build fd transmission with PT
+            {
+                extern int T_coll;
+                T_coll++;
+                Node* node=(Node*)this->node;
+                cout<<"ST T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;   //////// to collision handle machism should decide later
+                this->set_mac_busy();
+                this->mac_generate_send_data_collision_event(0);
+                return;
+            }
+            else
+            {
+                this->set_mac_busy();
+                this->mac_generate_send_data_collision_event(0);
+                this->cwfix=1;
+                return;
+            }
+        }
+        else if (this->state==BFD_PT && data.type == BFD_PT)
+        // for simutalous transmission
+        {
+            extern int T_coll;
+            T_coll++;
+            Node* node=(Node*)this->node;
+            cout<<"T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
+            this->set_mac_busy();
             this->mac_generate_send_data_collision_event(0);
+            return;
         }
     }
-    
 }
 
 bool MAC::have_data(address dst)
 {
     extern int fd_op;
     this->iter= this->m_queue.begin();
-    if(m_queue.empty())
-    {
+    if( m_queue.empty() )
         return false;
-    }
-    if( (*iter).destination==dst)
-    {
+    
+    if( (*iter).destination==dst){
         cout<<"the first packet is to send to build fd transmissions"<<endl;
         fd_op+=1;
-        this->to_busy=0;
         return true;
     }
     
     iter++;
     for(;iter < m_queue.end();iter++)
     {
-        if( (*iter).destination==dst )
-        {
+        if( (*iter).destination==dst ){
             cout<<"other packet is to send to build fd transmissions"<<endl;
             fd_op+=1;
-            this->to_busy=0;
             return true;
         }
     }
-    
     this->iter=this->m_queue.begin();
-    this->to_busy=1;
     return false;
 }
 
@@ -341,13 +378,11 @@ void MAC::freeze(int count)
     if(freeze_flag==0 && (this->state==MAC_IDLE) && !(this-> m_queue).empty())
     {
         freeze_flag=1;
-        if(backoff_count!=0)
-        {
+        if(backoff_count!=0){
             if(backoff_count >= count)
                 backoff_count=count;
         }
-        else
-        {
+        else {
             backoff_count = count;
         }
         cout<<"MAC::Node"<<this->m_adrress-(1<<10)<<" backoff count freeze to "<<backoff_count <<endl;
@@ -366,30 +401,23 @@ DATA MAC::get_data()
 
 void MAC::mac_send_data_end()
 {
-    if(this->state==MAC_IDLE)
+    if(this->state==MAC_IDLE || this->state==MAC_BUSY)
     {
-        cout<<"MAC::error"<<endl;
+        cout<<"MAC::send_data error"<<endl;
         exit(-1-1);
-    }
-    
-    else if(this->state==MAC_BUSY)
-    {
-       // Node* tmp=(Node*)this->node;
-        cout<<"MAC::error"<<endl;
-        exit(-1-2);
     }
     
     else if(this->state==BFD_PT || this->state ==BFD_ST)
     {
-        if(this->to_send_ack==1)
+        if(this->to_send_ack == 1)
         {
+            this->to_send_ack = 0;
             this->mac_generate_send_ack_event(0);
-            this->to_send_ack=0;
         }
     }
     else
     {
-        cout<<"MAC::error"<<endl;
+        cout<<"MAC::send_data error"<<endl;
         exit(-1-3);
     }
 }
@@ -413,42 +441,41 @@ void MAC::mac_receive_data_end(const DATA & data)
         }
     }
     
-    else if(this->state==BFD_PT || this->state ==BFD_ST)
+    else if(this->state == BFD_PT || this->state == BFD_ST)
     {
-        if(data.destination==this->m_adrress)
+        if(data.destination == this->m_adrress)
         {
             if(phy->tx_state==PHY_IDLE && phy->rx_state==PHY_IDLE)
                 this->mac_generate_send_ack_event(0);
-            else
-            {
-                this->to_send_ack=1;
+            else {
+                this->to_send_ack = 1;
             }
         }
         else
         {
-            cout<<"MAC::error"<<endl;
+            cout<<"MAC::receive_data_end error"<<endl;
             exit(-1-5);
         }
     }
     
     
-    //    if(data.destination==this->m_adrress)
-    //    {
-    //        if(data.source==this->peer)
-    //        {
-    ////            extern int success;
-    ////            success++;
-    //
-    //            this->mac_generate_send_ack_event(0);
-    //        }
-    //        else
-    //        {
-    ////            extern int failed;
-    ////            cout<<"why failed"<<endl;
-    ////            failed++;
-    //            this->mac_generate_send_ack_collision_event(0);
-    //        }
-    //    }
+//        if(data.destination==this->m_adrress)
+//        {
+//            if(data.source==this->peer)
+//            {
+//    //            extern int success;
+//    //            success++;
+//    
+//                this->mac_generate_send_ack_event(0);
+//            }
+//            else
+//            {
+//    //            extern int failed;
+//    //            cout<<"why failed"<<endl;
+//    //            failed++;
+//                this->mac_generate_send_ack_collision_event(0);
+//            }
+//        }
 }
 
 void MAC::mac_pop_data()
@@ -461,76 +488,57 @@ void MAC::mac_pop_data()
 
 void MAC::mac_send_data_collision()
 {
-    if(this->state != MAC_BUSY && this->to_T_coll==1)
+    if(this->state != MAC_BUSY)
     {
-        this->state=MAC_BUSY;
-        this->peer=0;
-        this->dst=0;
-        extern int T_coll;
-        T_coll++;
-        Node* tmpnode=(Node*) this->node;
-        
-        tmpnode->next_sending_event.t=0;
-        cout<<"T_COLL:"<<T_coll<<" NODEID:"<<tmpnode->nodeid<<endl;
-        this->to_T_coll=0;
-    }
-    
-    if(this->state!=MAC_BUSY)
-    {
-        cout<<"MAC::error"<<endl;
+        cout<<"MAC::send_data error"<<endl;
         exit(-1-6);
     }
-    
-    if(CW<CWmax)
+    if(this->cwfix!=1)
     {
-        CW=2*CW;
-        cout<< "MAC::Node"<< (m_adrress-(1<<10)) <<", CW is " << CW << endl;
+        if(CW<CWmax){
+            CW=2*CW;
+            cout<< "MAC::Node"<< (m_adrress-(1<<10)) <<", CW is " << CW << endl;
+            this->cwfix=1;
+        }
+        else{
+            CW=CWmax;
+            cout<< "MAC::Node"<< (m_adrress-(1<<10)) <<", CW reaches CWmax " << CW << endl;
+            this->cwfix=1;
+        }
     }
-    else
-    {
-        CW=CWmax;
-        cout<< "MAC::Node"<< (m_adrress-(1<<10)) <<", CW reaches CWmax " << CW << endl;
-    }
-    this->to_T_coll=0;
-    this->state=MAC_BUSY;
-    this->iter=m_queue.begin();
-    this->peer=0;
-    this->dst=0;
+    this->set_mac_busy();
 }
 
 void MAC::mac_receive_data_collision(const Event & event)
 {
+    if(this->to_T_coll==1){
+        Node* tmpnode= (Node*) node;
+        cout<<"NODE"<<tmpnode->nodeid<<" WAIT!!"<<endl;
+        return;
+    }
+    
     if(this->state==MAC_IDLE)
         return;
     else if(this->state==MAC_BUSY)
         return;
     else if ((this->state==BFD_PT || this->state==BFD_ST))
     {
-        if(this->to_T_coll==1)
-        {
-            Node* tmpnode= (Node*) node;
-            cout<<"NODE"<<tmpnode->nodeid<<" WAIT!!"<<endl;
-            return;
-        }
         if(event.nodeid==(int)this->peer-(1<<10))
         {
-            this->state=MAC_BUSY;
-            this->peer=0;
-            this->dst=0;
-            this->mac_generate_send_data_collision_event(0);
-            
-            if(this->to_T_coll != 1)
-            {
+            if(this->to_T_coll != 1){
                 extern int R_coll;
                 R_coll++;
                 Node* tmpnode= (Node*) node;
                 cout<<"MAC::Node"<<tmpnode->nodeid <<" recieve and will send collision"<<endl;
                 cout<<"R_COLL:"<<R_coll<<" Node:"<< tmpnode->nodeid<<endl;
+                this->set_mac_busy();
+                this->mac_generate_send_data_collision_event(0);
             }
         }
     }
     else
     {
+        cout<<"MAC::receive_data_collision error"<<endl;
         exit(-1);
     }
     
@@ -540,51 +548,51 @@ void MAC::mac_send_ack()
 {
     if(this->state==MAC_IDLE|| this->state==MAC_BUSY)
     {
-        cout<<"error"<<endl;
+        cout<<"MAC::mac_send_ack error"<<endl;
         exit(-1-7);
     }
-    else if(this->state==BFD_PT || this->state== BFD_ST)
-    {
-        return;
-    }
-    
+    this->mac_generate_send_ack_end_event(18/RATE);// size of ack
 }
 
 void MAC::mac_receive_ack(const ACK & ack)
 {
     if(this->state==MAC_IDLE){
-        this->state=MAC_BUSY;
-        this->peer=0;
-        this->dst=0;
+        this->set_mac_busy();
         return;
     }
     else if(this->state==MAC_BUSY)
-    {
         return;
-    }
     else if(this->state==BFD_ST|| this->state==BFD_PT)
     {
         if(this->m_adrress==ack.destination)
             return;
         else
         {
-            //            if((*iter).destination == this->peer)
-            //            {
-            //                extern int collided;
-            //                collided++;
-            //            }
-            
-            Node* tmpnode= (Node*) node;
-            this->state=MAC_BUSY;
-            this->peer=0;
-            this->dst=0;
+            if(this->state==BFD_PT)
+            {
+                extern int T_coll;
+                T_coll++;
+                Node* node=(Node*)this->node;
+                cout<<"PT ack T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
+                this->set_mac_busy();
+                this->mac_generate_send_data_collision_event(0);
+                return;
+            }
+            else if (this->state==BFD_ST && (*iter).destination == this->peer )
+                //BFD_ST maynot build fd transmission with PT
+            {
+                extern int T_coll;
+                T_coll++;
+                Node* node=(Node*)this->node;
+                cout<<"ST ack T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
+                this->set_mac_busy();
+                this->mac_generate_send_data_collision_event(0);
+                return;
+            }
+            this->set_mac_busy();
             this->mac_generate_send_data_collision_event(0);
-            tmpnode->next_sending_event.t=0;
-            
-            cout<<"MAC::Node"<<tmpnode->nodeid<< " send collision "<<endl;
-            
-            extern int T_coll;
-            T_coll++;
+            this->cwfix=1;
+            return;
         }
     }
     return;
@@ -600,25 +608,22 @@ ACK MAC::get_ack()
 //////////////send ack
 void MAC::mac_send_ack_end()
 {
-    if(this->state==MAC_IDLE)
+    Node* node= (Node*) this->node;
+    PHY*  phy= &(node->PHYlayer);
+    if(this->state == MAC_IDLE || this->state==MAC_BUSY)
     {
         cout<<"MAC::send_ack_end error"<<endl;
         exit(-1-8);
     }
-    else if(this->state==MAC_BUSY)
-    {
-        cout<<"MAC::send_ack_end error"<<endl;
-        exit(-1-9);
-    }
     
     else if(this->state==BFD_PT || this->state ==BFD_ST)
     {
-        if(this->to_busy==1)   /////// currently BFD == DBFD
-        {
-            this->state=MAC_BUSY;
-            this->to_busy=0;
-            this->to_send_ack=0;
-        }
+        if(phy->tx_state == PHY_IDLE && phy->rx_state==PHY_IDLE)
+            this->set_mac_busy();
+//        else
+//        {
+//            this->to_busy = 1;
+//        }
     }
     else
     {
@@ -630,20 +635,24 @@ void MAC::mac_send_ack_end()
 void MAC::mac_receive_ack_end(const ACK & ack)
 {
     Node* node= (Node*) this->node;
-    PHY* phy = &(node->PHYlayer);
-    
+    PHY*  phy= &(node->PHYlayer);
     if(this->state==MAC_IDLE || this->state==MAC_BUSY){
         return;
     }
     else if(this->state==BFD_ST || this->state==BFD_PT)
     {
-        if (ack.destination==this->m_adrress)
+        if (ack.destination == this->m_adrress)
         {
             extern int success;
             success++;
             cout<<"SUCCESS:"<<success<<endl;
-            CW=CWmin;
-            cout<< "MAC::Node"<< (m_adrress-(1<<10)) <<", CW back to " << CW << endl;
+            this->CW=CWmin;
+            // more complex cw control would add in future.
+//            cout<< "MAC::Node"<< (m_adrress-(1<<10)) <<", CW back to " << CW << endl;
+            
+            
+            this->mac_pop_data();
+            
             
             if(this->state==BFD_ST)
             {
@@ -653,11 +662,9 @@ void MAC::mac_receive_ack_end(const ACK & ack)
             }
             
             if(phy->tx_state == PHY_IDLE && phy->rx_state==PHY_IDLE)
-                this->state=MAC_BUSY;
-            else
-            {
-                this->to_busy=1;
-            }
+                this->set_mac_busy();
+//            if(this->to_busy == 1)   /////// currently BFD == DBFD
+//                this->set_mac_busy();
         }
         else
         {
@@ -665,15 +672,14 @@ void MAC::mac_receive_ack_end(const ACK & ack)
             exit(-1);
         }
     }
+    
 }
-
 
 void MAC::mac_send_ack_collision()
 {
-    if(this->state != MAC_BUSY)
-    {
+    if(this->state != MAC_BUSY){
         cout<<"MAC::send_ack_collision error"<<endl;
-        exit(-1-11);
+        exit(-1);
     }
 }
 
@@ -687,7 +693,7 @@ void MAC::mac_receive_ack_collision(const Event & event)
         if (event.nodeid == this->dst) {
             extern int failed;
             failed++;
-            this->state=MAC_BUSY;
+            this->set_mac_busy();
         }
         else
             return;
