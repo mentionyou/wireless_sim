@@ -13,18 +13,18 @@
 #define Common_h
 
 
-#define size_of_Nodelist 11 // 4 equal to 3 node evaluated
+#define size_of_Nodelist 21 // 4 equal to 3 node evaluated
 
-#define  SLOT 50
+#define  SLOT 20
 #define  RATE 1 /// 1b in 1 us
-#define  PACKETS_IN_1_SECONDS   100
-#define  DIFS 120
-#define  SIFS 1
-#define HEADER  120
+#define  PACKETS_IN_1_SECONDS   50
+#define  DIFS 50
+#define  SIFS 10
+#define  HEADER  120  // 72+48
 
-
+#define CWMIN 128
 #define ENDTIME pow(10,9)
-#define QUEUE_SIZE 50
+#define QUEUE_SIZE 20
 
 
 #endif /* common_h */

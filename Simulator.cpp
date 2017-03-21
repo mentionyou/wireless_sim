@@ -22,7 +22,7 @@ void Simulator::run()
             break;
         this->sim_queue.pop();
         this->sch(tmp_event);
-        cout<<endl;
+//        cout<<endl;
     }
 }
 

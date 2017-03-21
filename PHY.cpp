@@ -42,7 +42,7 @@ void PHY::phy_receive(const Event & event)
     else if(rx_state==PHY_COLLISION)
         rx_state=PHY_COLLISION;
     
-    index = index | 1<<(event.nodeid-1);
+    index = index | ( (unsigned long) 1<<(event.nodeid-1) );
 }
 
 void PHY::phy_send_end()
@@ -54,7 +54,7 @@ void PHY::phy_send_end()
 
 void PHY::phy_receive_end(const Event & event)
 {
-    index= index & (~(1<<(event.nodeid-1)));
+    index = index & (~((unsigned long)1<<(event.nodeid-1)));
     if(index==0)
         rx_state=PHY_IDLE;
 }

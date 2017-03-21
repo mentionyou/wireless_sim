@@ -81,15 +81,15 @@ void MAC::mac_generate_send_data_event()   /// start based on backoff
         freeze_flag=0;
         if(this->state != MAC_IDLE)  //////// questions?
         {
-            cout<<"MAC::generate_send_event_error"<<endl;
+            //cout<<"MAC::generate_send_event_error"<<endl;
             exit(-1);
         }
-       // cout<<"MAC::Node"<<node->nodeid<<" restarts a backoff, from "<< backoff_count <<endl;
+//       //cout<<"MAC::Node"<<node->nodeid<<" restarts a backoff, from "<< backoff_count <<endl;
     }
     else
     {
         this->backoff_count=random(CW);
-        //cout<<"MAC::Node"<<node->nodeid<<" starts a new backoff, base on "<< this->CW <<" and current backoff is "<< this->backoff_count <<endl;
+//        //cout<<"MAC::Node"<<node->nodeid<<" starts a new backoff, base on "<< this->CW <<" and current backoff is "<< this->backoff_count <<endl;
         node->generate_sending_data_event(DIFS+backoff_count*SLOT);
         return;
     }
@@ -151,7 +151,7 @@ void MAC::mac_generate_data()
 {
     if(m_queue.size()==QUEUE_SIZE)
     {
-//        cout<<"MAC::queue is full,drop packet"<<endl;
+//        //cout<<"MAC::queue is full,drop packet"<<endl;
         this->mac_generate_inner_node_event();
         return;
     }
@@ -201,18 +201,18 @@ void MAC::mac_send_data()
     {
         if (this->state != BFD_ST)
         {
-            cout<<"MAC::send data error"<<endl;
+            //cout<<"MAC::send data error"<<endl;
             exit(2);
         }
     }
     
     else
     {
-        cout<<"MAC::send data error"<<endl;
+        //cout<<"MAC::send data error"<<endl;
         exit(-1);
     }
     
-    int length_of_packet=(*iter).payload+HEADER;
+    int length_of_packet=(*iter).payload+ HEADER ;
     this->mac_generate_send_data_end_event(length_of_packet/RATE);
     
 }
@@ -228,17 +228,20 @@ void MAC::sim_trans()
         extern int T_coll;
         T_coll++;
         Node* node=(Node*) this->node;
-        cout<<"same T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid<<endl;
+        //cout<<"same T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid<<endl;
     }
 }
 
 void MAC::mac_receive_data(const DATA& data)
 {
-    cout<<"MAC::Node"<<this->m_adrress-(1<<10) <<"("<<this->state<<")"<<endl;
+    if(!( this->state==100 || this->state==0))
+    {
+        //cout<<"MAC::Node"<<this->m_adrress-(1<<10) <<"("<<this->state<<")"<<endl;
+    }
     
     if(this->to_T_coll == 1){
         Node* tmpnode= (Node*) node;
-        cout<<"NODE"<<tmpnode->nodeid<<" WAIT!!"<<endl;
+        //cout<<"NODE"<<tmpnode->nodeid<<" WAIT!!"<<endl;
         return;
     }
     
@@ -257,7 +260,7 @@ void MAC::mac_receive_data(const DATA& data)
             }
             else
             {
-                cout<<"MAC::receive data error"<<endl;
+                //cout<<"MAC::receive data error"<<endl;
                 exit(-1);
             }
         }
@@ -286,7 +289,7 @@ void MAC::mac_receive_data(const DATA& data)
 //                extern int T_coll;
 //                T_coll++;
 //                Node* node=(Node*)this->node;
-//                cout<<"T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
+//                //cout<<"T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
 //                this->set_mac_busy();
 //                this->mac_generate_send_data_collision_event(0);
 //            }
@@ -296,7 +299,7 @@ void MAC::mac_receive_data(const DATA& data)
 //            extern int T_coll;
 //            T_coll++;
 //            Node* node=(Node*)this->node;
-//            cout<<"T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
+//            //cout<<"T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
 //            this->set_mac_busy();
 //            this->mac_generate_send_data_collision_event(0);
 //        }
@@ -308,7 +311,7 @@ void MAC::mac_receive_data(const DATA& data)
                 extern int T_coll;
                 T_coll++;
                 Node* node=(Node*)this->node;
-                cout<<"PT T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
+                //cout<<"PT T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
                 this->set_mac_busy();
                 this->mac_generate_send_data_collision_event(0);
                 return;
@@ -319,7 +322,7 @@ void MAC::mac_receive_data(const DATA& data)
                 extern int T_coll;
                 T_coll++;
                 Node* node=(Node*)this->node;
-                cout<<"ST T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;   //////// to collision handle machism should decide later
+                //cout<<"ST T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;   //////// to collision handle machism should decide later
                 this->set_mac_busy();
                 this->mac_generate_send_data_collision_event(0);
                 return;
@@ -338,7 +341,7 @@ void MAC::mac_receive_data(const DATA& data)
             extern int T_coll;
             T_coll++;
             Node* node=(Node*)this->node;
-            cout<<"T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
+            //cout<<"T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
             this->set_mac_busy();
             this->mac_generate_send_data_collision_event(0);
             return;
@@ -354,7 +357,7 @@ bool MAC::have_data(address dst)
         return false;
     
     if( (*iter).destination==dst){
-        cout<<"the first packet is to send to build fd transmissions"<<endl;
+        //cout<<"the first packet is to send to build fd transmissions"<<endl;
         fd_op+=1;
         return true;
     }
@@ -363,7 +366,7 @@ bool MAC::have_data(address dst)
     for(;iter < m_queue.end();iter++)
     {
         if( (*iter).destination==dst ){
-            cout<<"other packet is to send to build fd transmissions"<<endl;
+            //cout<<"other packet is to send to build fd transmissions"<<endl;
             fd_op+=1;
             return true;
         }
@@ -385,7 +388,7 @@ void MAC::freeze(int count)
         else {
             backoff_count = count;
         }
-        cout<<"MAC::Node"<<this->m_adrress-(1<<10)<<" backoff count freeze to "<<backoff_count <<endl;
+        //cout<<"MAC::Node"<<this->m_adrress-(1<<10)<<" backoff count freeze to "<<backoff_count <<endl;
     }
 }
 
@@ -403,7 +406,7 @@ void MAC::mac_send_data_end()
 {
     if(this->state==MAC_IDLE || this->state==MAC_BUSY)
     {
-        cout<<"MAC::send_data error"<<endl;
+        //cout<<"MAC::send_data error"<<endl;
         exit(-1-1);
     }
     
@@ -417,7 +420,7 @@ void MAC::mac_send_data_end()
     }
     else
     {
-        cout<<"MAC::send_data error"<<endl;
+        //cout<<"MAC::send_data error"<<endl;
         exit(-1-3);
     }
 }
@@ -427,9 +430,9 @@ void MAC::mac_receive_data_end(const DATA & data)
     Node* node= (Node*) this->node;
     PHY* phy = &(node->PHYlayer);
     
-    if(this->state==MAC_IDLE)
+    if(this->state == MAC_IDLE)
     {
-        cout<<"error"<<endl;
+        //cout<<"MAC::Node"<<node->nodeid<<" mac_receive_data_end error"<<endl;
         exit(-1-4);
     }
     
@@ -453,7 +456,7 @@ void MAC::mac_receive_data_end(const DATA & data)
         }
         else
         {
-            cout<<"MAC::receive_data_end error"<<endl;
+            //cout<<"MAC::receive_data_end error"<<endl;
             exit(-1-5);
         }
     }
@@ -471,7 +474,7 @@ void MAC::mac_receive_data_end(const DATA & data)
 //            else
 //            {
 //    //            extern int failed;
-//    //            cout<<"why failed"<<endl;
+//    //            //cout<<"why failed"<<endl;
 //    //            failed++;
 //                this->mac_generate_send_ack_collision_event(0);
 //            }
@@ -490,19 +493,19 @@ void MAC::mac_send_data_collision()
 {
     if(this->state != MAC_BUSY)
     {
-        cout<<"MAC::send_data error"<<endl;
+        //cout<<"MAC::send_data error"<<endl;
         exit(-1-6);
     }
     if(this->cwfix!=1)
     {
         if(CW<CWmax){
             CW=2*CW;
-            cout<< "MAC::Node"<< (m_adrress-(1<<10)) <<", CW is " << CW << endl;
+            //cout<< "MAC::Node"<< (m_adrress-(1<<10)) <<", CW is " << CW << endl;
             this->cwfix=1;
         }
         else{
             CW=CWmax;
-            cout<< "MAC::Node"<< (m_adrress-(1<<10)) <<", CW reaches CWmax " << CW << endl;
+            //cout<< "MAC::Node"<< (m_adrress-(1<<10)) <<", CW reaches CWmax " << CW << endl;
             this->cwfix=1;
         }
     }
@@ -513,7 +516,7 @@ void MAC::mac_receive_data_collision(const Event & event)
 {
     if(this->to_T_coll==1){
         Node* tmpnode= (Node*) node;
-        cout<<"NODE"<<tmpnode->nodeid<<" WAIT!!"<<endl;
+        //cout<<"NODE"<<tmpnode->nodeid<<" WAIT!!"<<endl;
         return;
     }
     
@@ -529,8 +532,8 @@ void MAC::mac_receive_data_collision(const Event & event)
                 extern int R_coll;
                 R_coll++;
                 Node* tmpnode= (Node*) node;
-                cout<<"MAC::Node"<<tmpnode->nodeid <<" recieve and will send collision"<<endl;
-                cout<<"R_COLL:"<<R_coll<<" Node:"<< tmpnode->nodeid<<endl;
+                //cout<<"MAC::Node"<<tmpnode->nodeid <<" recieve and will send collision"<<endl;
+                //cout<<"R_COLL:"<<R_coll<<" Node:"<< tmpnode->nodeid<<endl;
                 this->set_mac_busy();
                 this->mac_generate_send_data_collision_event(0);
             }
@@ -538,7 +541,7 @@ void MAC::mac_receive_data_collision(const Event & event)
     }
     else
     {
-        cout<<"MAC::receive_data_collision error"<<endl;
+        //cout<<"MAC::receive_data_collision error"<<endl;
         exit(-1);
     }
     
@@ -548,7 +551,7 @@ void MAC::mac_send_ack()
 {
     if(this->state==MAC_IDLE|| this->state==MAC_BUSY)
     {
-        cout<<"MAC::mac_send_ack error"<<endl;
+        //cout<<"MAC::mac_send_ack error"<<endl;
         exit(-1-7);
     }
     this->mac_generate_send_ack_end_event(18/RATE);// size of ack
@@ -573,7 +576,7 @@ void MAC::mac_receive_ack(const ACK & ack)
                 extern int T_coll;
                 T_coll++;
                 Node* node=(Node*)this->node;
-                cout<<"PT ack T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
+                //cout<<"PT ack T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
                 this->set_mac_busy();
                 this->mac_generate_send_data_collision_event(0);
                 return;
@@ -584,7 +587,7 @@ void MAC::mac_receive_ack(const ACK & ack)
                 extern int T_coll;
                 T_coll++;
                 Node* node=(Node*)this->node;
-                cout<<"ST ack T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
+                //cout<<"ST ack T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
                 this->set_mac_busy();
                 this->mac_generate_send_data_collision_event(0);
                 return;
@@ -612,7 +615,7 @@ void MAC::mac_send_ack_end()
     PHY*  phy= &(node->PHYlayer);
     if(this->state == MAC_IDLE || this->state==MAC_BUSY)
     {
-        cout<<"MAC::send_ack_end error"<<endl;
+        //cout<<"MAC::send_ack_end error"<<endl;
         exit(-1-8);
     }
     
@@ -627,7 +630,7 @@ void MAC::mac_send_ack_end()
     }
     else
     {
-        cout<<"MAC::send_ack_end error"<<endl;
+        //cout<<"MAC::send_ack_end error"<<endl;
         exit(-1-10);
     }
 }
@@ -645,10 +648,10 @@ void MAC::mac_receive_ack_end(const ACK & ack)
         {
             extern int success;
             success++;
-            cout<<"SUCCESS:"<<success<<endl;
+            //cout<<"SUCCESS:"<<success<<endl;
             this->CW=CWmin;
             // more complex cw control would add in future.
-//            cout<< "MAC::Node"<< (m_adrress-(1<<10)) <<", CW back to " << CW << endl;
+//            //cout<< "MAC::Node"<< (m_adrress-(1<<10)) <<", CW back to " << CW << endl;
             
             
             this->mac_pop_data();
@@ -658,7 +661,7 @@ void MAC::mac_receive_ack_end(const ACK & ack)
             {
                 extern int fd_suc;
                 fd_suc++;
-                cout<<"FD SUC:"<<fd_suc<<endl;
+                //cout<<"FD SUC:"<<fd_suc<<endl;
             }
             
             if(phy->tx_state == PHY_IDLE && phy->rx_state==PHY_IDLE)
@@ -668,7 +671,7 @@ void MAC::mac_receive_ack_end(const ACK & ack)
         }
         else
         {
-            cout<<"MAC::receive_ack_end error"<<endl;
+            //cout<<"MAC::receive_ack_end error"<<endl;
             exit(-1);
         }
     }
@@ -678,7 +681,7 @@ void MAC::mac_receive_ack_end(const ACK & ack)
 void MAC::mac_send_ack_collision()
 {
     if(this->state != MAC_BUSY){
-        cout<<"MAC::send_ack_collision error"<<endl;
+        //cout<<"MAC::send_ack_collision error"<<endl;
         exit(-1);
     }
 }

@@ -109,7 +109,7 @@ public:
     
     
 private:
-    int CWmin=32;
+    int CWmin=CWMIN;
     int CWmax=1024;
     int CW;
 };
