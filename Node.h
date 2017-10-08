@@ -78,8 +78,6 @@ public:
     void generate_data(const Event&);
     void generate_data();
     
-    
-    //inter functions
     void node_free();
 
 };

@@ -18,7 +18,8 @@ PHY::PHY()
     this->rx_state=PHY_IDLE;
     this->tx_state=PHY_IDLE;
     this->node=NULL;
-    this->index=0;
+    this->index1=0;
+    this->index2=0;
 }
 
 
@@ -42,7 +43,17 @@ void PHY::phy_receive(const Event & event)
     else if(rx_state==PHY_COLLISION)
         rx_state=PHY_COLLISION;
     
-    index = index | ( (unsigned long) 1<<(event.nodeid-1) );
+    int id=event.nodeid-1;
+    if(id<=63)
+        index1= index1 | ( (unsigned long) 1<<id );
+    else if(id<=127)
+        index2 = index2 | ( (unsigned long) 1<<(id-64) );
+    else
+    {
+        cout<<"Number of node out of range"<<endl;
+        exit(-1);
+    }
+    
 }
 
 void PHY::phy_send_end()
@@ -54,8 +65,19 @@ void PHY::phy_send_end()
 
 void PHY::phy_receive_end(const Event & event)
 {
-    index = index & (~((unsigned long)1<<(event.nodeid-1)));
-    if(index==0)
+    int id=event.nodeid-1;
+    if(id<=63)
+        index1= index1 & (~((unsigned long)1<<id));
+    else if(id<=127)
+        index2 = index2 & (~((unsigned long)1<< (id-64) ));
+    else
+    {
+        cout<<"Number of node out of range"<<endl;
+        exit(-1);
+    }
+    
+    //index = index & (~((unsigned long)1<<(event.nodeid-1)));
+    if(index1==0 && index2==0 )
         rx_state=PHY_IDLE;
 }
 

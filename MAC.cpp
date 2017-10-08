@@ -26,7 +26,7 @@ int random(int window)
     return ran_generator.ran() % window;
 }
 
-u_seconds randomExponential(double lambda) // lambda packets generated in 1000000
+u_seconds randomExponential(double lambda) // lambda packets generated in 1000 000 000us
 {
     double pV = 0.0;
     extern random_number ran_generator;
@@ -36,7 +36,7 @@ u_seconds randomExponential(double lambda) // lambda packets generated in 100000
         if (pV != 1)
             break;
     }
-    pV = pow(10,6)*(-1.0/lambda)*log(1-pV);
+    pV = pow(10,9)*(-1.0/lambda)*log(1-pV);
     return pV;
 }
 
@@ -44,7 +44,6 @@ u_seconds randomExponential(double lambda) // lambda packets generated in 100000
 MAC::MAC()
 {
     this->state=MAC_IDLE;
-    this->m_queue.reserve(QUEUE_SIZE);//set the max length of queue;
     while (!this->m_queue.empty()) {
         this->m_queue.clear();
     }
@@ -61,16 +60,61 @@ MAC::MAC()
     this->to_T_coll=0;
     this->cwfix=0;
     this->num_bour=0;
+    this->m_queue.reserve(QUEUE_SIZE);//set the max length of queue;
+    this->success=0;
     memset(this->neighbour, size_of_Nodelist, sizeof(int)*3);
+    
+    this->pt_suc=0;
+    this->pt_coll=0;
+    this->st_suc=0;
+    this->st_coll=0;
+    this->fd_op=0;
+    this->pt_fd_suc=0;
+    this->st_fd_recv=0;
+    this->delay_max=0;
+    this->delay_sum=0;
 }
 
 /////////generate events
+
 
 void MAC::mac_generate_send_data_event(u_seconds t)  /// start based on FD transmission
 {
     Node *node= (Node*) this->node;
     node->generate_sending_data_event(t);
 };
+
+int AP_cw(int queuelength)
+{
+    if(queuelength <= (QUEUE_SIZE)/2)
+    {
+        return 1024;
+    }
+    else if(queuelength <= (QUEUE_SIZE*3)/4)
+    {
+        return 128;
+    }
+    else if(queuelength <= (QUEUE_SIZE*9)/10)
+        return 16;
+    else
+        return 1;
+}
+
+int client_cw(int queuelength)
+{
+    if(queuelength <= (QUEUE_SIZE)/2)
+    {
+        return 1024;
+    }
+    else if(queuelength <= (QUEUE_SIZE*3)/4)
+    {
+        return 256;
+    }
+    else
+        return 64;
+}
+
+
 
 void MAC::mac_generate_send_data_event()   /// start based on backoff
 {
@@ -81,15 +125,34 @@ void MAC::mac_generate_send_data_event()   /// start based on backoff
         freeze_flag=0;
         if(this->state != MAC_IDLE)  //////// questions?
         {
-            //cout<<"MAC::generate_send_event_error"<<endl;
+            ////cout<<"MAC::generate_send_event_error"<<endl;
             exit(-1);
         }
 //       //cout<<"MAC::Node"<<node->nodeid<<" restarts a backoff, from "<< backoff_count <<endl;
     }
     else
     {
-        this->backoff_count=random(CW);
-//        //cout<<"MAC::Node"<<node->nodeid<<" starts a new backoff, base on "<< this->CW <<" and current backoff is "<< this->backoff_count <<endl;
+        if(this->m_adrress!=1+(1<<10))
+        {
+            if(CLIENT_BACKOFF_PATTERN==0)
+                this->backoff_count=random(CW);
+            else if(CLIENT_BACKOFF_PATTERN==1)
+                this->backoff_count= random(  client_cw( (int) this->m_queue.size() ) );
+        }
+        else
+        {
+            if(AP_BACKOFF_PATTERN==0)
+                this->backoff_count=random(CW);
+            else if(AP_BACKOFF_PATTERN==1)
+                this->backoff_count= random(  AP_cw( (int) this->m_queue.size() ) );
+        
+        }
+//        if(BACKOFF_PATTERN==0)
+//            this->backoff_count=random(CW);
+//        else if(BACKOFF_PATTERN==1)
+//            this->backoff_count= random(  quelength_cw( (int) this->m_queue.size() ) );
+//        else
+//            this->backoff_count=random(CW);
         node->generate_sending_data_event(DIFS+backoff_count*SLOT);
         return;
     }
@@ -128,7 +191,8 @@ void MAC::mac_generate_send_ack_collision_event(u_seconds t)
 void MAC::mac_generate_inner_node_event()
 {
     Node *node= (Node*) this->node;
-    node->generate_inner_node_event(randomExponential(PACKETS_IN_1_SECONDS));
+    node->generate_inner_node_event(randomExponential(this->up_traffic));
+    
 }
 
 ////////// handle
@@ -141,9 +205,12 @@ void MAC::set_mac_busy()
     this->to_T_coll=0;
     this->to_busy=0;
     this->to_send_ack=0;
+    this->iter=m_queue.begin();
     Node* node=(Node*) this->node;
     node->next_sending_event.t=0;
 }
+
+
 
 ///////////inner node
 
@@ -156,30 +223,78 @@ void MAC::mac_generate_data()
         return;
     }
     extern random_number ran_generator;
+    extern Node Nodelist[size_of_Nodelist];
     DATA tmp_data;
-    int tmp_index;
+    address tmp_dst;
+
+    if(this->m_adrress != 1+(1<<10))
+        tmp_dst=1+(1<<10);
+    else
+    {
+        int tmp_index=ran_generator.ran()% this->up_traffic;
+        int i=2;
+        while (1)
+        {
+            tmp_index -= Nodelist[i].MAClayer.down_traffic;
+            if (tmp_index<0)
+                break;
+            i++;
+        }
+        tmp_dst=i+(1<<10);
+    }
     
-   
-    tmp_index=  ( ran_generator.ran() % (this->num_bour)) + 1;
-    //cout<<"MAC::Node"<< this->m_adrress-(1<<10) <<" SEND to the "<<tmp_index<<"th neighbour"<<endl;
-    address dst= (1<<10)+ this->neighbour [tmp_index] [0];
+//     ad hoc model//
+//    int tmp_index;
+//   
+//    tmp_index=  ( ran_generator.ran() % (this->num_bour)) + 1;
+//    //cout<<"MAC::Node"<< this->m_adrress-(1<<10) <<" SEND to the "<<tmp_index<<"th neighbour"<<endl;
+//    address dst;
+//    if(TOPO == ADHOC)
+//    {
+//        dst= (1<<10)+ this->neighbour [tmp_index] [0];
+//    }
+//    else if (TOPO == WLAN)
+//    {
+//        if (this->m_adrress==1+(1<<10))
+//            dst=(1<<10)+ this->neighbour [tmp_index] [0];
+//        else
+//            dst=1+(1<<10);
+//    }
+//    // ad hoc model//
+    
     
     tmp_data.source=this->m_adrress;
-    tmp_data.destination=dst;
-    tmp_data.peer=0;
-    tmp_data.payload=1280;
-    tmp_data.type=0;
+    tmp_data.destination=tmp_dst;
+    
+    Node* node= (Node*)this->node;
+    tmp_data.time=node->current_t;
     
     if(m_queue.empty() && this->state==MAC_IDLE)
     {
-        mac_generate_send_data_event(random(CW)*SLOT);
+        mac_generate_send_data_event();
     }
-    
     this->m_queue.push_back(tmp_data);     // may cause error in future.?????
     this->mac_generate_inner_node_event();
 }
 
+
 //////////send data
+
+bool MAC::moredata(address dst)
+{
+//    if( m_queue.empty() )
+//        return false;
+    auto it = this->m_queue.begin();
+    it++;
+    for(;it < m_queue.end();it++)
+    {
+        if( (*it).destination==dst ){
+            return true;
+        }
+    }
+    return false;
+}
+
 void MAC::mac_send_data()
 {
     if(this->state==MAC_IDLE)
@@ -195,6 +310,7 @@ void MAC::mac_send_data()
         // add the peer and type for a data packet.
         (*iter).type = BFD_PT;
         (*iter).peer = (*iter).destination;
+        (*iter).flag_moredata= this->moredata(dst);
     }
     
     else if(this->state==BFD_PT || this->state==BFD_ST)
@@ -223,24 +339,31 @@ void MAC::sim_trans()
     {
         this->to_T_coll=0;
         this->set_mac_busy();
-        this->mac_generate_send_data_collision_event(0);
         
-        extern int T_coll;
-        T_coll++;
-        Node* node=(Node*) this->node;
+//        extern int T_coll;
+//        T_coll++;
+        this->pt_coll++;
+        this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
+        //Node* node=(Node*) this->node;
         //cout<<"same T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid<<endl;
+    }
+}
+
+
+void recordmoredata(MAC* const mac, const DATA data)
+{
+    for(int i=0;i<size_of_Nodelist;i++){
+        if(data.source == (mac->neighbour[i][0])){
+            mac->neighbour[i][1]=data.flag_moredata;
+            return;
+        }
     }
 }
 
 void MAC::mac_receive_data(const DATA& data)
 {
-    if(!( this->state==100 || this->state==0))
-    {
-        //cout<<"MAC::Node"<<this->m_adrress-(1<<10) <<"("<<this->state<<")"<<endl;
-    }
-    
     if(this->to_T_coll == 1){
-        Node* tmpnode= (Node*) node;
+        //Node* tmpnode= (Node*) node;
         //cout<<"NODE"<<tmpnode->nodeid<<" WAIT!!"<<endl;
         return;
     }
@@ -253,10 +376,17 @@ void MAC::mac_receive_data(const DATA& data)
             {
                 this->state = BFD_ST;
                 this->peer  = data.source;
+                this->fd_op++; // a chance to choose fd, or hd
                 if(this->have_data(data.source)){
                     this->mac_generate_send_data_event(HEADER/RATE);
                     this->dst = data.source;
                 }
+                if(AVOID_UNNESSARY_TRANSMISSION==1 && this->m_adrress == 1+ (1<<10) && this->have_data(data.source) == false && AP_cw(this->m_queue.size()<=16) )
+                {
+                    this->set_mac_busy();
+                    this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
+                }
+                recordmoredata(this, data);
             }
             else
             {
@@ -272,7 +402,7 @@ void MAC::mac_receive_data(const DATA& data)
     {
         if((data.type==BFD_PT || data.type==BFD_ST) && (data.destination==this->m_adrress|| data.peer== this->m_adrress))
         {
-            this->mac_generate_send_data_collision_event(0);
+            this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
         }
     }
     
@@ -308,29 +438,33 @@ void MAC::mac_receive_data(const DATA& data)
         {
             if(this->state==BFD_PT)
             {
-                extern int T_coll;
-                T_coll++;
-                Node* node=(Node*)this->node;
+//                extern int T_coll;
+//                T_coll++;
+                this->pt_coll++;
+                
+                //Node* node=(Node*)this->node;
                 //cout<<"PT T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
                 this->set_mac_busy();
-                this->mac_generate_send_data_collision_event(0);
+                this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
                 return;
             }
-            else if (this->state==BFD_ST && (*iter).destination == this->peer )
+            else if (this->state==BFD_ST &&(this->iter!= this->m_queue.end()) &&(*iter).destination == this->peer )
                 //BFD_ST maynot build fd transmission with PT
             {
-                extern int T_coll;
-                T_coll++;
-                Node* node=(Node*)this->node;
+//                extern int T_coll;
+//                T_coll++;
+                this->st_coll++;
+                
+                //Node* node=(Node*)this->node;
                 //cout<<"ST T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;   //////// to collision handle machism should decide later
                 this->set_mac_busy();
-                this->mac_generate_send_data_collision_event(0);
+                this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
                 return;
             }
             else
             {
                 this->set_mac_busy();
-                this->mac_generate_send_data_collision_event(0);
+                this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
                 this->cwfix=1;
                 return;
             }
@@ -338,12 +472,13 @@ void MAC::mac_receive_data(const DATA& data)
         else if (this->state==BFD_PT && data.type == BFD_PT)
         // for simutalous transmission
         {
-            extern int T_coll;
-            T_coll++;
-            Node* node=(Node*)this->node;
+//            extern int T_coll;
+//            T_coll++;
+            this->pt_coll++;
+            //Node* node=(Node*)this->node;
             //cout<<"T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
             this->set_mac_busy();
-            this->mac_generate_send_data_collision_event(0);
+            this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
             return;
         }
     }
@@ -351,23 +486,23 @@ void MAC::mac_receive_data(const DATA& data)
 
 bool MAC::have_data(address dst)
 {
-    extern int fd_op;
     this->iter= this->m_queue.begin();
     if( m_queue.empty() )
         return false;
+//
+//    if( (*iter).destination==dst){
+//        //cout<<"the first packet is to send to build fd transmissions"<<endl;
+//        fd_op+=1;
+//        return true;
+//    }
+//    
+//    iter++;
     
-    if( (*iter).destination==dst){
-        //cout<<"the first packet is to send to build fd transmissions"<<endl;
-        fd_op+=1;
-        return true;
-    }
-    
-    iter++;
-    for(;iter < m_queue.end();iter++)
+    for(;iter != m_queue.end();iter++)
     {
         if( (*iter).destination==dst ){
-            //cout<<"other packet is to send to build fd transmissions"<<endl;
-            fd_op+=1;
+            //cout<<"packet is to send to build fd transmissions"<<endl;
+            //fd_op+=1;
             return true;
         }
     }
@@ -453,6 +588,8 @@ void MAC::mac_receive_data_end(const DATA & data)
             else {
                 this->to_send_ack = 1;
             }
+            if (this->state==BFD_ST)
+                this->st_fd_recv++;
         }
         else
         {
@@ -481,11 +618,7 @@ void MAC::mac_receive_data_end(const DATA & data)
 //        }
 }
 
-void MAC::mac_pop_data()
-{
-    this->m_queue.erase(this->iter);
-    iter=m_queue.begin();
-}
+
 
 //////////////send data collision
 
@@ -515,7 +648,7 @@ void MAC::mac_send_data_collision()
 void MAC::mac_receive_data_collision(const Event & event)
 {
     if(this->to_T_coll==1){
-        Node* tmpnode= (Node*) node;
+        //Node* tmpnode= (Node*) node;
         //cout<<"NODE"<<tmpnode->nodeid<<" WAIT!!"<<endl;
         return;
     }
@@ -529,13 +662,13 @@ void MAC::mac_receive_data_collision(const Event & event)
         if(event.nodeid==(int)this->peer-(1<<10))
         {
             if(this->to_T_coll != 1){
-                extern int R_coll;
-                R_coll++;
-                Node* tmpnode= (Node*) node;
+//                extern int R_coll;
+//                R_coll++;
+                //Node* tmpnode= (Node*) node;
                 //cout<<"MAC::Node"<<tmpnode->nodeid <<" recieve and will send collision"<<endl;
                 //cout<<"R_COLL:"<<R_coll<<" Node:"<< tmpnode->nodeid<<endl;
                 this->set_mac_busy();
-                this->mac_generate_send_data_collision_event(0);
+                this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
             }
         }
     }
@@ -554,7 +687,8 @@ void MAC::mac_send_ack()
         //cout<<"MAC::mac_send_ack error"<<endl;
         exit(-1-7);
     }
-    this->mac_generate_send_ack_end_event(18/RATE);// size of ack
+    ACK ack;
+    this->mac_generate_send_ack_end_event( HEADER+ack.payload /RATE);// size of ack
 }
 
 void MAC::mac_receive_ack(const ACK & ack)
@@ -573,27 +707,29 @@ void MAC::mac_receive_ack(const ACK & ack)
         {
             if(this->state==BFD_PT)
             {
-                extern int T_coll;
-                T_coll++;
-                Node* node=(Node*)this->node;
+//                extern int T_coll;
+//                T_coll++;
+                this->pt_coll++;
+                //Node* node=(Node*)this->node;
                 //cout<<"PT ack T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
                 this->set_mac_busy();
-                this->mac_generate_send_data_collision_event(0);
+                this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
                 return;
             }
             else if (this->state==BFD_ST && (*iter).destination == this->peer )
                 //BFD_ST maynot build fd transmission with PT
             {
-                extern int T_coll;
-                T_coll++;
-                Node* node=(Node*)this->node;
+//                extern int T_coll;
+//                T_coll++;
+                this->st_coll++;
+                //Node* node=(Node*)this->node;
                 //cout<<"ST ack T_COLL:"<<T_coll<<" NODEID:"<<node->nodeid <<endl;
                 this->set_mac_busy();
-                this->mac_generate_send_data_collision_event(0);
+                this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
                 return;
             }
             this->set_mac_busy();
-            this->mac_generate_send_data_collision_event(0);
+            this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
             this->cwfix=1;
             return;
         }
@@ -621,6 +757,9 @@ void MAC::mac_send_ack_end()
     
     else if(this->state==BFD_PT || this->state ==BFD_ST)
     {
+        if (this->state==BFD_PT) {
+            this->pt_fd_suc++;
+        }
         if(phy->tx_state == PHY_IDLE && phy->rx_state==PHY_IDLE)
             this->set_mac_busy();
 //        else
@@ -646,21 +785,22 @@ void MAC::mac_receive_ack_end(const ACK & ack)
     {
         if (ack.destination == this->m_adrress)
         {
-            extern int success;
-            success++;
-            //cout<<"SUCCESS:"<<success<<endl;
-            this->CW=CWmin;
-            // more complex cw control would add in future.
-//            //cout<< "MAC::Node"<< (m_adrress-(1<<10)) <<", CW back to " << CW << endl;
+            if(state==BFD_ST)
+                this->st_suc++;
+            else if(state==BFD_PT)
+                this->pt_suc++;
             
+            this->CW=CWmin;
+//            more complex cw control would add in future.
+//            cout<< "MAC::Node"<< (m_adrress-(1<<10)) <<", CW back to " << CW << endl;
             
             this->mac_pop_data();
             
             
             if(this->state==BFD_ST)
             {
-                extern int fd_suc;
-                fd_suc++;
+//                extern int fd_suc;
+//                fd_suc++;
                 //cout<<"FD SUC:"<<fd_suc<<endl;
             }
             
@@ -676,6 +816,18 @@ void MAC::mac_receive_ack_end(const ACK & ack)
         }
     }
     
+}
+
+void MAC::mac_pop_data()
+{
+    DATA data=this->get_data();
+    Node* node=(Node*)this->node;
+    u_seconds delay=node->current_t-data.time;
+    this->delay_sum +=delay;
+    if (this->delay_max< delay)
+        this->delay_max=delay;
+    this->m_queue.erase(this->iter);
+    iter=m_queue.begin();
 }
 
 void MAC::mac_send_ack_collision()
@@ -694,8 +846,8 @@ void MAC::mac_receive_ack_collision(const Event & event)
     else if(this->state==BFD_PT || this->state==BFD_ST)
     {
         if (event.nodeid == this->dst) {
-            extern int failed;
-            failed++;
+//            extern int failed;
+//            failed++;
             this->set_mac_busy();
         }
         else

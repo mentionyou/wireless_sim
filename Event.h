@@ -10,7 +10,7 @@
 #define Event_h
 
 #include <iostream>
-#include "Packet.h"
+
 
 #define Sending_data 100
 #define Sending_data_end 200
@@ -19,7 +19,6 @@
 #define Sending_ack_end 500
 #define Sending_ack_collision 600
 #define Inner_node 700
-
 #define u_seconds unsigned long
 
 // we treat end and collision as a kind of sending case.

@@ -9,7 +9,9 @@
 #include "Node.h"
 #include "Common.h"
 #include "math.h"
+#include "Topo.h"
 #include <iostream>
+
 
 using namespace std;
 
@@ -141,15 +143,23 @@ void Node::generate_inner_node_event(u_seconds t)
 
 /////////////// tmp functions
 
-extern bool dist(int a, int b) // nodeid a,b
+bool dist(int a, int b)
 {
-    extern Node Nodelist[size_of_Nodelist];
-    Node* na= &(Nodelist[a]);
-    Node* nb= &(Nodelist[b]);
-    if( (na->x-nb->x)*(na->x-nb->x) + (na->y-nb->y)*(na->y-nb->y) < 5)
-        return true;
-    return false;
+    Topo* topo;
+    return topo->dist(a,b);
 }
+
+
+//bool dist(int a, int b)
+//// nodeid a,b
+//{
+//    extern Node Nodelist[size_of_Nodelist];
+//    Node* na= &(Nodelist[a]);
+//    Node* nb= &(Nodelist[b]);
+//    if( (na->x-nb->x)*(na->x-nb->x) + (na->y-nb->y)*(na->y-nb->y) < INTERFERENCE)
+//        return true;
+//    return false;
+//}
 
 
 void Node::node_free()
@@ -165,6 +175,10 @@ void Node::node_free()
         if(!mac->m_queue.empty())
         {
             mac->mac_generate_send_data_event();
+        }
+        else
+        {
+            mac->freeze_flag=0;
         }
         //cout<<"Node::Node"<<nodeid<<" Free!"<<endl;
     }
@@ -193,13 +207,21 @@ DATA Node::send_data(const Event & event)
     
     MAC* mac=& (this->MAClayer);
     PHY* phy=& (this->PHYlayer);
+    
     this->current_t=event.t;
+    extern int t_queue;
+//    if(this->nodeid== 1 && t_queue<current_t)
+//    {
+//        MAC* mac= &(this->MAClayer);
+//        cout<< mac->m_queue.size()<<" ";
+//        t_queue+= pow(10,3);
+//    }
     
     phy->phy_send();
     mac->mac_send_data();
     DATA data=mac->get_data();
     
-    //cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" sends a DATA at "<<event.t<<"s to Node"<<data.destination-(1<<10) <<endl;
+    //cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" sends a DATA at "<<event.t<<"us to Node"<<data.destination-(1<<10) <<endl;
     
     if(mac->to_T_coll==1) // same time transmission collision
         mac->sim_trans();
@@ -240,7 +262,7 @@ void Node::receive_data(const Event & event, const DATA & data)
     phy->phy_receive(event);
     mac->mac_receive_data(data);
     
-    //cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" Receive a DATA at "<<event.t<<"s from Node"<<data.source-(1<<10) <<endl;
+//    cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" Receive a DATA at "<<event.t<<"s from Node"<<data.source-(1<<10) <<endl;
     
     if(mac->state==MAC_BUSY && this->next_sending_event.t !=0)
     {
@@ -269,7 +291,7 @@ DATA Node::send_data_end(const Event & event)
     DATA data=mac->get_data();
     mac->mac_send_data_end();
     
-    //cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" sends a DATA END at "<<event.t<<"s to Node"<<data.destination-(1<<10) <<endl;
+    //cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" sends a DATA END at "<<event.t<<"us to Node"<<data.destination-(1<<10) <<endl;
     
     return data;
 };
@@ -310,7 +332,7 @@ void Node::send_data_collision(const Event & event)
     phy->phy_send_end();
     mac->mac_send_data_collision();
     
-    //cout<<"Node:: Node"<<this->nodeid <<" sends a DATA Collision at "<< current_t <<"s"<<endl;
+    //cout<<"Node:: Node"<<this->nodeid <<" sends a DATA Collision at "<< current_t <<"us"<<endl;
     
     this->node_free();
 }
@@ -327,7 +349,7 @@ void Node::receive_data_collision(const Event & event)
     phy->phy_receive_end(event);
     mac->mac_receive_data_collision(event);
     
-    //cout<<"Node:: Node"<<this->nodeid <<" receives collision at "<< current_t<<"s"<<endl;
+//    cout<<"Node:: Node"<<this->nodeid <<" receives collision at "<< current_t<<"s"<<endl;
     
     this->node_free();
     
@@ -417,7 +439,7 @@ ACK Node::send_ack_end(const Event & event)
     
     this->node_free();
     
-    //cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" sends a ACK END at "<<event.t<<"s to Node"<<ack.destination-(1<<10) <<endl;
+//    cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" sends a ACK END at "<<event.t<<"s to Node"<<ack.destination-(1<<10) <<endl;
     return ack;
 }
 
@@ -433,7 +455,7 @@ void Node::receive_ack_end(const Event & event, const ACK& ack)
     phy->phy_receive_end(event);
     mac->mac_receive_ack_end(ack);
     
-    //cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" receives a ACK END at "<<event.t<<"s to Node"<<ack.destination-(1<<10) <<endl;
+//    cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" receives a ACK END at "<<event.t<<"s to Node"<<ack.destination-(1<<10) <<endl;
     
     this->node_free();
 }
