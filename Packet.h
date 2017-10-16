@@ -20,10 +20,10 @@ struct DATA
     address destination=0;
     address peer=0;/// will added later
     int flag_moredata;
-    int payload=1500*8-120;
+    int payload=1500*8;
     int type=0;
     u_seconds time;
-};
+}; 
 
 struct ACK
 {

@@ -34,8 +34,13 @@ public:
     
     int nodeid;   //node id
     int x,y;      //location
-    int power;
+    int node_type;  //1 AP 2 client
     u_seconds current_t;
+    int num_assocaition_node;
+    int num_interferation_node;
+    bool assocaition_node[size_of_Nodelist];
+    bool interferation_node[size_of_Nodelist];
+    int assocaition_AP_id;
     
     MAC  MAClayer;
     PHY  PHYlayer;

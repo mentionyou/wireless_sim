@@ -19,7 +19,7 @@
 #define Sending_ack_end 500
 #define Sending_ack_collision 600
 #define Inner_node 700
-#define u_seconds unsigned long
+#define u_seconds long
 
 // we treat end and collision as a kind of sending case.
 

@@ -3,6 +3,7 @@
 #include "Event.h"
 #include "Node.h"
 #include "Common.h"
+#include "Statistics.h"
 #include <math.h>
 
 
@@ -10,13 +11,18 @@
 void Simulator::run()
 {
     u_seconds endtime= ENDTIME;
+//    int i=0;
     while(!this->sim_queue.empty())
     {
         Event tmp_event=this->sim_queue.top();
-//        extern Node Nodelist[size_of_Nodelist];
-//        if(Nodelist[1].MAClayer.to_T_coll==1 || Nodelist[2].MAClayer.to_T_coll==1 || Nodelist[3].MAClayer.to_T_coll==1 )
+//        int x = tmp_event.t / Interval;
+//        if( x > i )
 //        {
-//            cout<< Nodelist[1].MAClayer.to_T_coll << Nodelist[2].MAClayer.to_T_coll<<Nodelist[3].MAClayer.to_T_coll<<endl;
+//            i=x;
+//            cout<<i<<endl;
+//            Statistics* statistic;
+//            statistic->record();
+//            cout<<endl;
 //        }
         if(tmp_event.t >= endtime)
             break;
@@ -145,7 +151,6 @@ void Simulator::sch(const Event & event)
         if(sending_node->MAClayer.state==MAC_IDLE){
             return;
         }
-
         sending_node->send_ack_collision(event);
         for (int i=1;i<size_of_Nodelist;i++)
         {
@@ -156,8 +161,6 @@ void Simulator::sch(const Event & event)
             }
         }
     }
-    
-    
     else if(event.type==Inner_node)
     {
         Node* node= &Nodelist[event.nodeid];

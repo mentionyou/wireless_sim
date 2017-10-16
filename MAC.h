@@ -38,6 +38,7 @@
 
 using namespace std;
 
+
 class MAC
 {
 public:
@@ -53,19 +54,21 @@ public:
     
     int backoff_count;
     int num_bour;
-    int neighbour[size_of_Nodelist][3];
+    int neighbour[size_of_Nodelist][4];
     //[0], neighbour node id;
-    //[1], does the node have data for me?
-    //[2], does the node have data to send to another node, in order to build FD?
+    //[1], neighbour node traffic
+    //[2], does the node have data for me?
+    //[3], does the node have data to send to another node, in order to build FD?
     
     
     
     void freeze(int);
-    bool freeze_flag;
-    bool to_T_coll;    //// a flag to calculate T_coll
-    bool to_send_ack;  //// a flag i
+    bool to_freeze_flag;  //// a flag to freeze backoff count
+    bool to_sim_coll;
+    bool to_send_coll;
+    bool to_send_ack;  //// a flag to indicate when to send ack
     bool to_busy;      //// a flag to set a node into MAC_BUSY mode.
-    bool cwfix;      ////  a flag to indicate cw not increase when collide.
+    bool to_cwfix;        //// a flag to indicate cw not increase when collide.
     
 public:
     void mac_generate_send_data_event();
@@ -110,12 +113,15 @@ public:
 public:
     int pt_coll;//base on sense or, base on trigger signal?
     int st_coll;
+    int pt_fd_op;
+    int pt_fd_suc;
     int pt_suc;
     int st_suc;
-    int pt_fd_suc;
-    int st_fd_recv;
-    int fd_op;
+//    int pt_fd_suc;
+//    int st_fd_suc;
+    
     u_seconds delay_sum;
+    int delay_count;
     u_seconds delay_max;
     
     

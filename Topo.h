@@ -9,14 +9,18 @@
 #ifndef Topo_h
 #define Topo_h
 
+
+
 class Topo
 {
+    
 public:
     Topo();
     ~Topo(){};
     bool dist(int,int);
     void start();
     void set_topo();
+    
 };
 
 
