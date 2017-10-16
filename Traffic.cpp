@@ -31,11 +31,18 @@ void Traffic::set_traffic()
     // AP set it's up taffic base on clients down traffic ( AP's up traffic is the golbal down traffic)
     // AP is node[1]
     
-    for(int i=1+num_AP;i<size_of_Nodelist;i++)
+    int i=1+num_AP;
+    for(;i<1+num_AP+num_client*2;i++)
     {
         Nodelist[i].MAClayer.up_traffic= base_traffic*pow(10,3);
         Nodelist[i].MAClayer.down_traffic= base_traffic*pow(10,3);
     }
+    for(;i<size_of_Nodelist;i++)
+    {
+        Nodelist[i].MAClayer.up_traffic= 1;
+        Nodelist[i].MAClayer.down_traffic= 1;
+    }
+    
     for(int i=1; i<1+num_AP;i++)
     {
         Nodelist[i].MAClayer.up_traffic=0;
@@ -64,7 +71,6 @@ void AP_traffic(int AP_id)
         cout<<"Traffic setting error"<<endl;
         exit(-1);
     }
-    
 }
 
 

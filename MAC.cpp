@@ -54,7 +54,7 @@ MAC::MAC()
     this->iter=m_queue.begin();
     this->peer=0;
     this->dst=0;
-    this->to_freeze_flag=0;
+    this->freeze_flag=0;
     this->to_send_ack=0;
     this->to_busy=0;
     this->to_sim_coll=0;
@@ -88,18 +88,18 @@ void MAC::mac_generate_send_data_event(u_seconds t)  /// start based on FD trans
 
 int AP_cw(int queuelength)
 {
-    if(queuelength <= (QUEUE_SIZE)/2)
+    if(queuelength < (QUEUE_SIZE)/2)
     {
         return 1024;
     }
-    else if(queuelength <= (QUEUE_SIZE*3)/4)
+    else if(queuelength < (QUEUE_SIZE*3)/4)
     {
         return 128;
     }
-    else if(queuelength <= (QUEUE_SIZE*9)/10)
-        return 16;
+    else if(queuelength < (QUEUE_SIZE*9)/10)
+        return 64;
     else
-        return 1;
+        return 64;
 }
 
 int client_cw(int queuelength)
@@ -113,7 +113,7 @@ int client_cw(int queuelength)
         return 256;
     }
     else
-        return 64;
+        return 128;
 }
 
 
@@ -121,7 +121,7 @@ int client_cw(int queuelength)
 void MAC::mac_generate_send_data_event()   /// start based on backoff
 {
     Node *node= (Node*) this->node;
-    if(to_freeze_flag==1)
+    if(freeze_flag==1)
     {
         if(this->state != MAC_IDLE)  //////// questions?
         {
@@ -129,11 +129,11 @@ void MAC::mac_generate_send_data_event()   /// start based on backoff
             exit(-1);
         }
         node->generate_sending_data_event(DIFS+backoff_count*SLOT);
-        to_freeze_flag=0;
+        freeze_flag=0;
 //        cout<<"MAC::Node"<<node->nodeid<<" restarts a backoff, from "<< backoff_count <<endl;
         return;
     }
-    else if (to_freeze_flag==0)
+    else if (freeze_flag==0)
     {
         if(this->m_adrress<=num_AP+(1<<10))
         {
@@ -263,11 +263,12 @@ void MAC::mac_generate_data()
     tmp_data.destination=tmp_dst;
     tmp_data.time=node->current_t;
     
-    if(m_queue.empty() && this->state==MAC_IDLE)
+    if(m_queue.empty())
     {
         this->m_queue.push_back(tmp_data);
         this->iter=m_queue.begin();
-        mac_generate_send_data_event();
+        if(this->state == MAC_IDLE)
+            mac_generate_send_data_event();
     }
     else
     {
@@ -438,7 +439,7 @@ void MAC::mac_receive_data(const DATA& data)
                 this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
                 return;
             }
-            else if ( this->state==BFD_ST && (!this->m_queue.empty()) && ( (*iter).destination == this->peer ) )
+            else if ( this->state==BFD_ST && (!this->m_queue.empty() && ( (*iter).destination == this->peer )))
                 //BFD_ST maynot build fd transmission with PT
             {
                 this->st_coll++;
@@ -486,9 +487,9 @@ bool MAC::have_data(address dst)
 
 void MAC::freeze(int count)
 {
-    if(to_freeze_flag==0 && (this->state==MAC_IDLE) && !(this-> m_queue).empty())
+    if(freeze_flag==0 && (this->state==MAC_IDLE) && !(this-> m_queue).empty())
     {
-        to_freeze_flag=1;
+        freeze_flag=1;
         if(backoff_count!=0){
             if(backoff_count >= count)
                 backoff_count=count;
@@ -670,7 +671,7 @@ void MAC::mac_receive_ack(const ACK & ack)
                 this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
                 return;
             }
-            else if (this->state==BFD_ST && (!this->m_queue.empty() )&& (*iter).destination == this->peer )
+            else if (this->state==BFD_ST && (!this->m_queue.empty() && (*iter).destination == this->peer ))
                 //BFD_ST maynot build fd transmission with PT
             {
 
@@ -779,7 +780,8 @@ void MAC::mac_pop_data()
     if (this->delay_max< delay)
         this->delay_max=delay;
     this->m_queue.erase(this->iter);
-    iter=m_queue.begin();
+    if(!this->m_queue.empty())
+        iter=m_queue.begin();
 }
 
 void MAC::mac_send_ack_collision()

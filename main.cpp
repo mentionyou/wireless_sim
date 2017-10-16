@@ -82,7 +82,8 @@ int main(int argc, const char * argv[]) {
     int s_suc=0;
     
     cout<<endl;
-    for(int i=1;i<size_of_Nodelist;i++)
+    for(int i=1;i<1+num_AP+num_client*2;i++)
+//    for(int i=1;i<size_of_Nodelist;i++)
     {
         MAC* mac= & (Nodelist[i].MAClayer);
         suc+=mac->st_suc+mac->pt_suc;
@@ -90,10 +91,10 @@ int main(int argc, const char * argv[]) {
         s_suc+=mac->st_suc;
         coll+=mac->pt_coll;
         
-       cout<<"Node"<<i<<":"<< mac->pt_suc+ mac->st_suc <<" PT_SUC:"<<mac->pt_suc<< "; PT_FD_SUC:"<<mac->pt_fd_suc <<"; PT_OP:"<<mac->pt_fd_op <<"; ST_SUC:"<<mac->st_suc <<" PT_COLL:"<<mac->pt_coll<<" Delay_sum:"<<mac->delay_sum;//<<"; ST_COLL:"<< mac->st_coll;
+        cout<<"Node"<<i<<":"<< mac->pt_suc+ mac->st_suc <<" PT_SUC:"<<mac->pt_suc<< "; PT_FD_SUC:"<<mac->pt_fd_suc <<"; PT_OP:"<<mac->pt_fd_op <<"; ST_SUC:"<<mac->st_suc <<" PT_COLL:"<<mac->pt_coll<<"; ST_COLL:"<< mac->st_coll;
         cout<<endl;
-        cout<<"\t\tDelay_avg: "<< (double) mac->delay_sum/(mac->pt_suc+ mac->st_suc) /pow(10,6) <<" Delay_max: "<< (double)mac->delay_max /pow(10,6) ;
-        cout<<endl;
+//        cout<<"\t\tDelay_avg: "<< (double) mac->delay_sum/(mac->pt_suc+ mac->st_suc) /pow(10,6) <<" Delay_max: "<< (double)mac->delay_max /pow(10,6) ;
+//        cout<<endl;
     }
     
     cout<<"SUC:"<< s_suc+p_suc<<"; P_SUC:"<< p_suc<<"; S_SUC:"<<s_suc<<"; FD ratio:"<<2*(double)s_suc/suc<< "; Coll ratio:"<< (double)coll/ (coll+p_suc) <<endl;

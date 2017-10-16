@@ -63,12 +63,16 @@ public:
     
     
     void freeze(int);
-    bool to_freeze_flag;  //// a flag to freeze backoff count
+    bool freeze_flag;   //// a flag indicate whether the mac freeze backoff count or not
+    bool busytone_flag; //// a flag indicate whether the node sends busytone or not
+    
+    
+    
     bool to_sim_coll;
     bool to_send_coll;
     bool to_send_ack;  //// a flag to indicate when to send ack
     bool to_busy;      //// a flag to set a node into MAC_BUSY mode.
-    bool to_cwfix;        //// a flag to indicate cw not increase when collide.
+    bool to_cwfix;     //// a flag to indicate cw not increase when collide.
     
 public:
     void mac_generate_send_data_event();

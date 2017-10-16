@@ -176,7 +176,7 @@ void Node::node_free()
         }
         else
         {
-            mac->to_freeze_flag=0;
+            mac->freeze_flag=0;
         }
 //        cout<<"Node::Node"<<nodeid<<" Free!"<<endl;
     }
