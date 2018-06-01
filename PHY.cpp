@@ -29,7 +29,7 @@ void PHY::phy_send()
         tx_state=PHY_BUSY;
     else
     {
-        cout<<"PHY::error"<<endl;
+        cout<<"PHY::send error"<<endl;
         exit(-1);
     }
 }
@@ -45,7 +45,7 @@ void PHY::phy_receive(const Event & event)
     
     int id=event.nodeid-1;
     if(id<=63)
-        index1= index1 | ( (unsigned long) 1<<id );
+        index1= index1  | ( (unsigned long) 1<<id );
     else if(id<=127)
         index2 = index2 | ( (unsigned long) 1<<(id-64) );
     else
@@ -76,7 +76,6 @@ void PHY::phy_receive_end(const Event & event)
         exit(-1);
     }
     
-    //index = index & (~((unsigned long)1<<(event.nodeid-1)));
     if(index1==0 && index2==0 )
         rx_state=PHY_IDLE;
 }

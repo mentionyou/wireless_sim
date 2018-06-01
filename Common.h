@@ -12,13 +12,16 @@
 #ifndef  Common_h
 #define  Common_h
 
-
+#define  DEBUG 0
 #define  size_of_Nodelist (71)// 4 equal to 3 node evaluated,(1AP+2Node)
 #define  num_AP 5
 #define  num_client 13
+#define  Fake_node ( 128 )
+#define  Fake_node_address (128 +(1<<10))
+
 
 #define  SLOTS_TO_HANDLE_COLLISION 5
-#define  QUEUE_SIZE 1
+#define  QUEUE_SIZE 10
 #define  CWMIN 128
 #define  CWMAX 1024
 #define  CWFD  16
@@ -33,7 +36,7 @@
 #define  INTERFERENCE 1001
 
 
-#define  AP_BACKOFF_PATTERN 1    //BEB 0 //BASE ON QUEUE LENGTH 1
+#define  AP_BACKOFF_PATTERN 0    //BEB 0 //BASE ON QUEUE LENGTH 1
 #define  CLIENT_BACKOFF_PATTERN 0
 #define  AVOID_UNNESSARY_TRANSMISSION 0
 #define  ADHOC 9

@@ -12,13 +12,15 @@
 #include <iostream>
 
 
-#define Sending_data 100
-#define Sending_data_end 200
-#define Sending_data_collision 300
-#define Sending_ack 400
-#define Sending_ack_end 500
-#define Sending_ack_collision 600
-#define Inner_node 700
+#define Sending_data_event 100
+#define Sending_data_end_event 200
+#define Sending_data_collision_event 300
+#define Sending_ack_event 400
+#define Sending_ack_end_event 500
+#define Sending_ack_collision_event 600
+#define Sending_busytone_event 700
+#define Sending_busytone_end_event 800
+#define Inner_node_event 900
 #define u_seconds long
 
 // we treat end and collision as a kind of sending case.

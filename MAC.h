@@ -17,20 +17,24 @@
 #include <queue>
 
 
+//MAC layer type, as well as data/busytone packet type
+
 #define MAC_IDLE 0
 
 #define BFD_PT 11
 #define BFD_ST 12
-
 #define DBFD_PT 21 //simple——T
 #define DBFD_ST 22
 #define DBFD_SR 23
-
 #define SBFD_PT 31
 #define SBFD_ST 32
 #define SBFD_PR 33
-
+#define BUSYTONE 41
 #define MAC_BUSY 100
+
+
+#define MODE_HD  111
+#define MODE_FD  222
 
 
 
@@ -49,6 +53,7 @@ public:
     vector<DATA>::iterator iter;
     address m_adrress;
     int state;
+    int mode; // 0 IDLE; 1 HD;2 FD
     address peer; // the node, expeceted to receive DATA from
     address dst; // the node,  expeceted to receive ACK from
     
@@ -66,11 +71,9 @@ public:
     bool freeze_flag;   //// a flag indicate whether the mac freeze backoff count or not
     bool busytone_flag; //// a flag indicate whether the node sends busytone or not
     
-    
-    
     bool to_sim_coll;
-    bool to_send_coll;
-    bool to_send_ack;  //// a flag to indicate when to send ack
+    bool to_send_coll; //// a flag to indicate whether to send data/ack coll.
+    bool to_send_ack;  //// a flag to indicate when to send ack. '1' : sends ack after send data end. '0' :sends busytone after send
     bool to_busy;      //// a flag to set a node into MAC_BUSY mode.
     bool to_cwfix;     //// a flag to indicate cw not increase when collide.
     
@@ -83,8 +86,10 @@ public:
     void mac_generate_send_ack_end_event(u_seconds);
     void mac_generate_send_ack_collision_event(u_seconds);
     void mac_generate_inner_node_event();
+    void mac_generate_send_busytone_event(u_seconds);
+    void mac_generate_send_busytone_end_event(u_seconds);
     
-    
+public:
     bool have_data(address);
     void mac_generate_data();
     void mac_pop_data();
@@ -102,18 +107,17 @@ public:
     void mac_receive_ack(const ACK &);
     void mac_receive_ack_end(const ACK &);
     void mac_receive_ack_collision(const Event &);
-    
+    void sim_trans();
+    DATA mac_send_busytone();
+    void mac_receive_busytone(const DATA&);
+    DATA mac_send_busytone_end();
+    void mac_receive_busytone_end(const DATA&);
     
     DATA get_data();
     ACK  get_ack();
-    void sim_trans();
-    bool moredata(address);
-    
+//    bool moredata(address);
     int up_traffic;
     int down_traffic;
-    
-    int success;
-    
 public:
     int pt_coll;//base on sense or, base on trigger signal?
     int st_coll;
@@ -121,8 +125,6 @@ public:
     int pt_fd_suc;
     int pt_suc;
     int st_suc;
-//    int pt_fd_suc;
-//    int st_fd_suc;
     
     u_seconds delay_sum;
     int delay_count;

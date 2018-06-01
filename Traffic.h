@@ -13,7 +13,7 @@
 
 #include "Node.h"
 
-#define BASE_TRAFFIC 100
+#define BASE_TRAFFIC 200
 
 //#define PACKETS_IN_1_SECONDS  5
 class Traffic

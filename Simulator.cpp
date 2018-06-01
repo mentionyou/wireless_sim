@@ -43,7 +43,7 @@ void Simulator::add(const Event &event)
 bool check_available(const Event &event)
 {
     extern Node Nodelist[size_of_Nodelist];
-    Node* node= &Nodelist[event.nodeid];
+    Node* node= & (Nodelist[event.nodeid]);
     if(node->next_sending_event == event)  //include send & end
         return true;
     return false;
@@ -56,15 +56,13 @@ void Simulator::sch(const Event & event)
 {
     extern Node Nodelist[size_of_Nodelist];
     
-    if (event.type==Sending_data)
+    if (event.type==Sending_data_event)
     {
         if (!check_available(event)) {
             return;
         }
-        
         Node* sending_node= &Nodelist[event.nodeid];
-        DATA on_channel_data = sending_node->send_data(event);;
-        
+        DATA on_channel_data = sending_node->send_data(event);
         for (int i=1;i<size_of_Nodelist;i++){
             if(i!= event.nodeid){
                 Node* receiving_node= &Nodelist[i];
@@ -73,14 +71,28 @@ void Simulator::sch(const Event & event)
         }
     }
     
-    else if (event.type==Sending_data_end)
+    else if (event.type==Sending_busytone_event)
     {
         if (!check_available(event)) {
             return;
         }
-        
         Node* sending_node= &Nodelist[event.nodeid];
-        DATA on_channel_data=sending_node->send_data_end(event);
+        DATA on_channel_data = sending_node->send_busytone(event);
+        for (int i=1;i<size_of_Nodelist;i++){
+            if(i!= event.nodeid){
+                Node* receiving_node= &Nodelist[i];
+                receiving_node->receive_busytone(event, on_channel_data);
+            }
+        }
+    }
+    
+    else if (event.type==Sending_data_end_event)
+    {
+        if (!check_available(event)) {
+            return;
+        }
+        Node* sending_node= &Nodelist[event.nodeid];
+        DATA on_channel_data = sending_node->send_data_end(event);
         
         for (int i=1;i<size_of_Nodelist;i++){
             if(i!= event.nodeid){
@@ -90,14 +102,31 @@ void Simulator::sch(const Event & event)
         }
     }
     
-    else if(event.type==Sending_data_collision)
+    else if ( event.type==Sending_busytone_end_event)
     {
+        if (!check_available(event)) {
+            return;
+        }
         Node* sending_node= &Nodelist[event.nodeid];
+        DATA on_channel_data= sending_node->send_busytone_end(event);
         
+        for (int i=1;i<size_of_Nodelist;i++){
+            if(i!= event.nodeid){
+                Node* receiving_node= &Nodelist[i];
+                receiving_node->receive_busytone_end(event, on_channel_data);
+            }
+        }
+    }
+    
+    else if(event.type==Sending_data_collision_event)
+    {
+        if (!check_available(event)) {
+            return;
+        }
+        Node* sending_node= &Nodelist[event.nodeid];
         if(sending_node->MAClayer.state==MAC_IDLE){
             return;
         }
-        
         sending_node->send_data_collision(event);
         for (int i=1;i<size_of_Nodelist;i++){
             if(i!= event.nodeid){
@@ -107,15 +136,13 @@ void Simulator::sch(const Event & event)
         }
     }
     
-    else if(event.type== Sending_ack)
+    else if(event.type== Sending_ack_event)
     {
         if (!check_available(event)) {
             return;
         }
-        
         Node* sending_node= &Nodelist[event.nodeid];
         ACK on_channel_ack= sending_node->send_ack(event);
-        
         for (int i=1;i<size_of_Nodelist;i++)
         {
             if(i!= event.nodeid)
@@ -125,13 +152,11 @@ void Simulator::sch(const Event & event)
             }
         }
     }
-    
-    else if(event.type== Sending_ack_end)
+    else if(event.type== Sending_ack_end_event)
     {
         if (!check_available(event)) {
             return;
         }
-        
         Node* sending_node= &Nodelist[event.nodeid];
         ACK on_channel_ack= sending_node->send_ack_end(event);
         
@@ -145,8 +170,11 @@ void Simulator::sch(const Event & event)
         }
     }
     
-    else if(event.type==Sending_ack_collision)
+    else if(event.type==Sending_ack_collision_event)
     {
+        if (!check_available(event)) {
+            return;
+        }
         Node* sending_node= &Nodelist[event.nodeid];
         if(sending_node->MAClayer.state==MAC_IDLE){
             return;
@@ -161,7 +189,7 @@ void Simulator::sch(const Event & event)
             }
         }
     }
-    else if(event.type==Inner_node)
+    else if(event.type==Inner_node_event)
     {
         Node* node= &Nodelist[event.nodeid];
         node->generate_data(event);
