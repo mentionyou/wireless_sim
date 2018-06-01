@@ -20,6 +20,7 @@ PHY::PHY()
     this->node=NULL;
     this->index1=0;
     this->index2=0;
+    this->index3=0;
 }
 
 

@@ -13,7 +13,7 @@
 
 #include "Node.h"
 
-#define BASE_TRAFFIC 200
+#define BASE_TRAFFIC 1000
 
 //#define PACKETS_IN_1_SECONDS  5
 class Traffic
@@ -22,9 +22,9 @@ public:
     Traffic();
     ~Traffic(){};
     void start();
-//    void start(int,int);
+    void start(int traffic ,int clients);
     void set_traffic();
-//    void set_traffic(int,int);
+    void set_traffic(int traffic ,int clients);
 };
 
 

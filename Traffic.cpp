@@ -12,19 +12,19 @@
 #include "Common.h"
 
 
-int base_traffic = BASE_TRAFFIC;
+//int base_traffic = BASE_TRAFFIC;
 
 void AP_traffic(int AP_id);
 
-void Traffic::start()
+void Traffic::start(int traffic, int clients)
 {
     extern Node Nodelist[size_of_Nodelist];
-    this->set_traffic();
+    this->set_traffic(traffic, clients);
     for (int i=1; i<size_of_Nodelist;i++)
         Nodelist[i].start(0);
 }
 
-void Traffic::set_traffic()
+void Traffic::set_traffic(int basetraffic, int clients)
 {
     extern Node Nodelist[size_of_Nodelist];
     // client set itself's up & down traffic independently
@@ -32,18 +32,27 @@ void Traffic::set_traffic()
     // AP is node[1]
     
     int i=1+num_AP;
-    for(;i<1+num_AP+num_client*2;i++)
+//    for(;i<1+num_AP+num_client*TOPO_MODE;i++)
+    for(;i<1+num_AP+num_client*num_AP;i++)
     {
-        Nodelist[i].MAClayer.up_traffic= base_traffic*pow(10,3);
-        Nodelist[i].MAClayer.down_traffic= base_traffic*pow(10,3);
+        Nodelist[i].MAClayer.up_traffic= basetraffic*pow(10,3);
+        Nodelist[i].MAClayer.down_traffic= basetraffic*pow(10,3);
     }
+//    extern int number_of_clients_in_statistic;
+//    extern random_number ran_generator;
+//    cout<<number_of_clients_in_statistic<<endl;
+//    for(;i<1+num_AP+number_of_clients_in_statistic;i++)
+//    {
+//        Nodelist[i].MAClayer.up_traffic= (ran_generator.ran()%5+1)*pow(10,4);
+//        Nodelist[i].MAClayer.down_traffic= (ran_generator.ran()%5+1)*pow(10,4);
+//    }
     for(;i<size_of_Nodelist;i++)
     {
         Nodelist[i].MAClayer.up_traffic= 1;
         Nodelist[i].MAClayer.down_traffic= 1;
     }
     
-    for(int i=1; i<1+num_AP;i++)
+    for(i=1; i<1+num_AP;i++)
     {
         Nodelist[i].MAClayer.up_traffic=0;
         Nodelist[i].MAClayer.down_traffic=0;
@@ -55,14 +64,14 @@ void AP_traffic(int AP_id)
 {
     extern Node Nodelist[size_of_Nodelist];
     Node* AP= & (Nodelist[AP_id]);
-    int count_1= AP->num_assocaition_node;
-    int count_2=0;
+    int count_1 = AP->num_assocaition_node;
+    int count_2 = 0;
     for(int i=1;i<size_of_Nodelist;i++)
     {
         if(AP->assocaition_node[i])
         {
             count_2++;
-            AP->MAClayer.neighbour[count_2][1]=Nodelist[i].MAClayer.down_traffic;
+            AP->MAClayer.neighbour[i][1]=Nodelist[i].MAClayer.down_traffic;
             AP->MAClayer.up_traffic += Nodelist[i].MAClayer.down_traffic;
         }
     }
@@ -75,6 +84,41 @@ void AP_traffic(int AP_id)
 
 
 
+//void Traffic::start()
+//{
+//    extern Node Nodelist[size_of_Nodelist];
+//    this->set_traffic();
+//    for (int i=1; i<size_of_Nodelist;i++)
+//        Nodelist[i].start(0);
+//}
+
+//
+//void Traffic::set_traffic()
+//{
+//    extern Node Nodelist[size_of_Nodelist];
+//    // client set itself's up & down traffic independently
+//    // AP set it's up taffic base on clients down traffic ( AP's up traffic is the golbal down traffic)
+//    // AP is node[1]
+//    
+//    int i=1+num_AP;
+//    for(;i<1+num_AP+num_client*TOPO_MODE;i++)
+//    {
+//        Nodelist[i].MAClayer.up_traffic= base_traffic*pow(10,3);
+//        Nodelist[i].MAClayer.down_traffic= base_traffic*pow(10,3);
+//    }
+//    for(;i<size_of_Nodelist;i++)
+//    {
+//        Nodelist[i].MAClayer.up_traffic= 1;
+//        Nodelist[i].MAClayer.down_traffic= 1;
+//    }
+//    
+//    for(int i=1; i<=num_AP;i++)
+//    {
+//        Nodelist[i].MAClayer.up_traffic=0;
+//        Nodelist[i].MAClayer.down_traffic=0;
+//        AP_traffic(i);
+//    }
+//}
 
 
 

@@ -58,12 +58,13 @@ public:
     address dst; // the node,  expeceted to receive ACK from
     
     int backoff_count;
-    int num_bour;
-    int neighbour[size_of_Nodelist][4];
-    //[0], neighbour node id;
-    //[1], neighbour node traffic
-    //[2], does the node have data for me?
-    //[3], does the node have data to send to another node, in order to build FD?
+    int num_bour; //the size of neighbour[..][0]
+    int neighbour[size_of_Nodelist][5];
+    //[0], list, neighbour node id; for simplcity , i use the first num_bour，
+    //[1], array,neighbour node traffic
+    //[2], array, How many frame does the node have for me?
+    //[3], array, does the node have data to send to another node, in order to build FD?
+    //[4], array, How many many packets belong to the peer is in buffer?
     
     
     
@@ -125,6 +126,8 @@ public:
     int pt_fd_suc;
     int pt_suc;
     int st_suc;
+    int pt_collsignal_coll;
+    int st_collsignal_coll;
     
     u_seconds delay_sum;
     int delay_count;
@@ -136,6 +139,7 @@ private:
     int CWmax=CWMAX;
     int CWfd=CWFD;
     int CW;
+    int CoIFS;
 };
 
 class random_number

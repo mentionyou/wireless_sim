@@ -33,7 +33,7 @@ public:
     ~Node(){};
     
     int nodeid;   //node id
-    int x,y;      //location
+    double x,y;      //location
     int node_type;  //1 AP 2 client
     u_seconds current_t;
     int num_assocaition_node;

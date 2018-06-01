@@ -14,6 +14,8 @@
 #include <iostream>
 #include <math.h>
 
+#define  Fake_node (256)
+#define  Fake_node_address (256 +(1<<10))
 
 
 using namespace std;
@@ -34,41 +36,77 @@ u_seconds randomExponential(double lambda) // lambda packets generated in 1000 0
     {
         pV = (double)ran_generator.ran()/(double)RAND_MAX;
         if (pV != 1)
-            break;
+        break;
     }
     pV = pow(10,9)*(-1.0/lambda)*log(1-pV);
     return pV;
 }
 
-int AP_cw(int queuelength)
+int AP_cw(int client_intention)
 {
-    if(queuelength < (QUEUE_SIZE)/2)
+    if(FUMAC==0)
     {
-        return 1024;
+//        if(client_intention <= 1)
+//        {
+//            return 128;
+//        }
+//        else if(client_intention <=2)
+//        {
+//            return 64;
+//        }
+//        else if(client_intention <=4 )
+//        return 32;
+//        else
+//        return 16;
+        if(client_intention <= 1 )
+        {
+            return 256;
+        }
+        else if(client_intention <=2)
+        {
+            return 128;
+        }
+        else if(client_intention <=4 )
+        {
+            return 64;
+        }
+        else
+        return 32;
     }
-    else if(queuelength < (QUEUE_SIZE*3)/4)
+    else if(FUMAC==1)
     {
-        return 128;
+        extern int number_of_clients_in_statistic;
+        return ceil( (double)(number_of_clients_in_statistic)/ 0.39);
     }
-    else if(queuelength < (QUEUE_SIZE*9)/10)
-        return 64;
-    else
-        return 64;
 }
 
-int client_cw(int queuelength)
+int client_cw(int moreflag)
 {
-    if(queuelength <= (QUEUE_SIZE)/2)
+    if(FUMAC==0)
     {
-        return 1024;
+        if(moreflag <= 1 )
+        {
+            return 256;
+        }
+        else if(moreflag <=2)
+        {
+            return 128;
+        }
+        else if(moreflag <=4 )
+        {
+            return 64;
+        }
+        else
+        return 32;
     }
-    else if(queuelength <= (QUEUE_SIZE*3)/4)
+    else if(FUMAC==1)
     {
-        return 256;
+        extern int number_of_clients_in_statistic;
+        return ceil( (double)(number_of_clients_in_statistic)/ 0.39);
     }
-    else
-        return 128;
 }
+
+
 
 MAC::MAC()
 {
@@ -77,7 +115,8 @@ MAC::MAC()
     while (!this->m_queue.empty()) {
         this->m_queue.clear();
     }
-    this->CW=32;
+    this->CoIFS=DIFS;
+    this->CW=CWmin;
     this->backoff_count=0;
     this->m_adrress=0;
     this->node=NULL;
@@ -92,7 +131,7 @@ MAC::MAC()
     //    this->queue is full,drop packet=0;
     this->num_bour=0;
     this->m_queue.reserve(QUEUE_SIZE);//set the max length of queue;
-    memset(this->neighbour, 0, sizeof(int)*4*size_of_Nodelist);
+    memset(this->neighbour,0,sizeof(int)*5*size_of_Nodelist);
     
     this->pt_suc=0;
     this->pt_coll=0;
@@ -100,7 +139,9 @@ MAC::MAC()
     this->st_coll=0;
     this->pt_fd_op=0;
     this->pt_fd_suc=0;
-    //    this->st_fd_suc=0;
+    this->pt_collsignal_coll=0;
+    this->st_collsignal_coll=0;
+    
     this->delay_max=0;
     this->delay_sum=0;
     this->delay_count=0;
@@ -116,9 +157,6 @@ void MAC::mac_generate_send_data_event(u_seconds t)  /// start based on FD trans
 };
 
 
-
-
-
 void MAC::mac_generate_send_data_event()   /// start based on backoff
 {
     Node *node= (Node*) this->node;
@@ -129,7 +167,15 @@ void MAC::mac_generate_send_data_event()   /// start based on backoff
             cout<<"MAC::generate_send_event_error"<<endl;
             exit(-1);
         }
-        node->generate_event(DIFS+backoff_count*SLOT,Sending_data_event);
+        if(this->m_adrress<=num_AP+(1<<10))
+        node->generate_event (SIFS + backoff_count*SLOT, Sending_data_event);
+        else
+        {
+            if(FUMAC==1 && CLIENT_BACKOFF_PATTERN==1)
+            node->generate_event (CoIFS + backoff_count*SLOT, Sending_data_event);
+            else
+            node->generate_event (DIFS + backoff_count*SLOT, Sending_data_event);
+        }
         freeze_flag=0;
         //        cout<<"MAC::Node"<<node->nodeid<<" restarts a backoff, from "<< backoff_count <<endl;
         return;
@@ -139,24 +185,45 @@ void MAC::mac_generate_send_data_event()   /// start based on backoff
         if(this->m_adrress<=num_AP+(1<<10))
         {
             if(AP_BACKOFF_PATTERN==0)
+            {
                 this->backoff_count=random(CW);
+                node->generate_event(SIFS+backoff_count*SLOT,Sending_data_event);
+                return;
+            }
             else if (AP_BACKOFF_PATTERN==1)
-                this->backoff_count= random( AP_cw( (int) this->m_queue.size() ) );
+            {
+                auto iter= this->m_queue.begin();
+                long dst= iter->destination - (1<<10);
+                int intentions=this->neighbour[(int)dst][2];
+                this->backoff_count= random( AP_cw(intentions) );
+                node->generate_event(SIFS+backoff_count*SLOT,Sending_data_event);
+                return;
+            }
+            
         }
         else
         {
             if(CLIENT_BACKOFF_PATTERN==0)
+            {
                 this->backoff_count=random(CW);
+                node->generate_event(DIFS+backoff_count*SLOT,Sending_data_event);
+                return;
+            }
             else if(CLIENT_BACKOFF_PATTERN==1)
-                this->backoff_count= random(  client_cw( (int) this->m_queue.size() ) );
-            
+            {
+                int AP_id=this->neighbour[1][0];
+                this->backoff_count= random(  client_cw( this->neighbour[AP_id][2] ) );
+                if (this->neighbour[AP_id][2]==1)
+                CoIFS=SIFS+2*SLOT;
+                else if(this->neighbour[AP_id][2]==2)
+                CoIFS=SIFS+1*SLOT;
+                else
+                CoIFS=SIFS;
+                node->generate_event(CoIFS+backoff_count*SLOT,Sending_data_event);
+                return;
+            }
         }
-        //        if(this->m_adrress-(1<<10)==9 )
-        //        {
-        //            cout<<"MAC::Node9 gen a backoff from "<<backoff_count<<endl;
-        //        }
-        node->generate_event(DIFS+backoff_count*SLOT,Sending_data_event);
-        return;
+        
     }
     else
     {
@@ -237,7 +304,7 @@ void MAC::set_mac_busy()
     this->iter=m_queue.begin();
     Node* node= (Node*) this->node;
     if(this->to_send_coll != true && node->next_sending_event.type != Sending_ack_collision_event )
-        node->next_sending_event.t=0;
+    node->next_sending_event.t=0;
 }
 
 ///////////inner node
@@ -248,7 +315,7 @@ void MAC::set_mac_busy()
 bool MAC::have_data(address dst)
 {
     if( m_queue.empty() )
-        return false;
+    return false;
     this->iter= this->m_queue.begin();
     for(;iter != m_queue.end();iter++)
     {
@@ -267,13 +334,13 @@ void MAC::freeze(int count)
     {
         freeze_flag=1;
         if(backoff_count!=0){
-            if(backoff_count >= count)
-                backoff_count=count;
+            if(backoff_count > count)
+            backoff_count=count;
         }
         else {
             backoff_count = count;
         }
-        //cout<<"MAC::Node"<<this->m_adrress-(1<<10)<<" backoff count freeze to "<<backoff_count <<endl;
+        //        cout<<"MAC::Node"<<this->m_adrress-(1<<10)<<" backoff count freeze to "<<backoff_count <<endl;
     }
 }
 
@@ -286,10 +353,15 @@ void MAC::mac_pop_data()
     this->delay_sum +=delay;
     this->delay_count++;
     if (this->delay_max< delay)
-        this->delay_max=delay;
+    this->delay_max=delay;
+    //    if(this->m_adrress <= num_AP+(1<<10))
+    //    {
+    this->neighbour[data.destination-(1<<10)][4] -- ;
+    //    }
     this->m_queue.erase(this->iter);
     if(!this->m_queue.empty())
-        iter=m_queue.begin();
+    iter=m_queue.begin();
+    
 }
 
 
@@ -352,10 +424,10 @@ void MAC::mac_generate_data()
         int tmp_index=ran_generator.ran()% this->up_traffic;
         int i=1; // index in neighbour
         while (1)
-        {
-            tmp_index -= this->neighbour[i][1];
+        {   int index=this->neighbour[i][0];
+            tmp_index -= this->neighbour[index][1];
             if (tmp_index<0)
-                break;
+            break;
             i++;
             if(i>this->num_bour)
             {
@@ -370,13 +442,14 @@ void MAC::mac_generate_data()
     tmp_data.source=this->m_adrress;
     tmp_data.destination=tmp_dst;
     tmp_data.time=node->current_t;
+    this->neighbour[tmp_dst-(1<<10)][4]++;
     
     if(m_queue.empty())
     {
         this->m_queue.push_back(tmp_data);
         this->iter=m_queue.begin();
         if(this->state == MAC_IDLE)
-            mac_generate_send_data_event();
+        mac_generate_send_data_event();
     }
     else
     {
@@ -410,7 +483,11 @@ void MAC::mac_send_data()
         // add the peer and type for a data packet.
         (*iter).type = BFD_PT;
         (*iter).peer = (*iter).destination;
-        //        (*iter).flag_moredata= this->moredata(dst);
+        //        if (this->m_adrress <= num_AP+(1<<10)) {
+        (*iter).flag_moredata = this->neighbour[this->dst-(1<<10)][4];
+        //        cout<<"Node"<<this->m_adrress-(1<<10)<<" have "<< iter->flag_moredata <<"packets for Node"<<iter->destination-(1<<10) <<endl;
+        //        }
+        
     }
     
     else if(this->state==BFD_PT || this->state==BFD_ST)
@@ -433,7 +510,7 @@ void MAC::mac_send_data_end()
 {
     if(this->state==MAC_IDLE || this->state==MAC_BUSY)
     {
-        cout<<"MAC::send_data error"<<endl;
+        cout<<"MAC::send_data error1"<<endl;
         exit(-1);
     }
     
@@ -441,10 +518,12 @@ void MAC::mac_send_data_end()
     {
         
         if(this->mode==MODE_FD && this->state==BFD_ST)
+        //        if(this->state==BFD_ST)
         {
             this->mac_generate_send_ack_event(0);
         }
         else if (this->mode==MODE_FD && this->state== BFD_PT)
+        //        else if (this->state== BFD_PT)
         {
             this->mac_generate_send_busytone_event(0);
         }
@@ -454,8 +533,9 @@ void MAC::mac_send_data_end()
         }
         else
         {
-            cout<<"MAC:send data end error"<<endl;
-            exit(-1);
+            ;
+//            cout<<"MAC:send data end error2"<<endl;
+//            exit(-1);
         }
     }
     else
@@ -471,7 +551,7 @@ DATA MAC::mac_send_busytone()
 {
     if(this->busytone_flag!=0)
     {
-        cout<<"MAC::mac send busytone error"<<endl;
+        cout<<"MAC::mac send busytone error1"<<endl;
         exit(-1);
     }
     if(this->state==BFD_PT || this->state==BFD_ST)
@@ -486,7 +566,7 @@ DATA MAC::mac_send_busytone()
     }
     else
     {
-        cout<<"MAC::send busytone error"<<endl;
+        cout<<"MAC::send busytone error2"<<endl;
         exit(-1);
     }
 }
@@ -516,9 +596,9 @@ DATA MAC::mac_send_busytone_end()
         else if(this->mode==MODE_HD)
         {
             if(this->state==BFD_PT)
-                this->set_mac_busy();
+            this->set_mac_busy();
             else if(this->state==BFD_ST)
-                this->mac_generate_send_ack_event(0);
+            this->mac_generate_send_ack_event(0);
         }
         return data;
     }
@@ -536,7 +616,7 @@ void MAC::mac_send_data_collision()
         cout<<"MAC::send_data_collision error"<<endl;
         exit(-7);
     }
-    if(this->to_cwfix!=1)
+    if(this->to_cwfix!=1 && (!CLIENT_BACKOFF_PATTERN) )
     {
         if(CW<CWmax){
             CW=2*CW;
@@ -550,6 +630,20 @@ void MAC::mac_send_data_collision()
         }
     }
     this->to_send_coll=0;
+    
+    if(AP_queue_manage)
+    {
+        if(!this->m_queue.empty() && this->m_adrress <= num_AP+(1<<10) && this->state== BFD_PT )
+        {
+            this->iter= this->m_queue.begin();
+            DATA tmp;
+            tmp.destination=(*iter).destination;
+            tmp.source=(*iter).source;
+            tmp.time=(*iter).time;
+            m_queue.erase(iter);
+            m_queue.push_back(tmp);
+        }
+    }
     this->set_mac_busy();
 }
 
@@ -583,7 +677,7 @@ void MAC::mac_send_ack_end()
             this->pt_fd_suc++;
         }
         if(phy->tx_state == PHY_IDLE && phy->rx_state==PHY_IDLE)
-            this->set_mac_busy();
+        this->set_mac_busy();
     }
     else
     {
@@ -611,22 +705,13 @@ void MAC::sim_trans()
     {
         this->to_sim_coll=0;
         this->set_mac_busy();
-        this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
         this->to_send_coll=1;
         this->pt_coll++;
+        this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
+        
     }
 }
 
-
-//void recordmoredata(MAC* const mac, const DATA data)
-//{
-//    for(int i=0;i<size_of_Nodelist;i++){
-//        if(data.source == (mac->neighbour[i][0])){
-//            //            mac->neighbour[i][1]=data.flag_moredata;
-//            return;
-//        }
-//    }
-//}
 
 void MAC::mac_receive_data(const DATA& data)
 {
@@ -650,7 +735,7 @@ void MAC::mac_receive_data(const DATA& data)
                         tmpnode->MAClayer.pt_fd_op++; // a chance to choose fd, or hd
                     }
                     if(this->mode==0)
-                        this->mode=MODE_FD;
+                    this->mode=MODE_FD;
                     else
                     {
                         cout<<"MAC:receive data error"<<endl;
@@ -661,7 +746,7 @@ void MAC::mac_receive_data(const DATA& data)
                 else
                 {
                     if(this->mode==0)
-                        this->mode=MODE_HD;
+                    this->mode=MODE_HD;
                     else
                     {
                         cout<<"MAC:receive data error"<<endl;
@@ -677,13 +762,13 @@ void MAC::mac_receive_data(const DATA& data)
             }
         }
         else
-            this->set_mac_busy();
+        this->set_mac_busy();
     }
     
     else if(this->state==MAC_BUSY)
     {
         if(this->to_send_coll==1)
-            return;
+        return;
         if((data.type==BFD_PT || data.type==BFD_ST) && (data.destination==this->m_adrress|| data.peer== this->m_adrress))
         {
             this->to_send_coll=1;
@@ -698,7 +783,8 @@ void MAC::mac_receive_data(const DATA& data)
             if(data.type==BFD_ST)
             {
                 if(this->mode==0)
-                    this->mode=MODE_FD;
+                this->mode=MODE_FD;
+                //                this->mode=MODE_FD;
                 return;
             }
         }
@@ -721,6 +807,8 @@ void MAC::mac_receive_data(const DATA& data)
             }
             this->to_send_coll=1;
             this->st_coll++;
+            if(ST_CW_FIX)
+                this->to_cwfix=1;
             this->set_mac_busy();
             this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
             return;
@@ -729,11 +817,6 @@ void MAC::mac_receive_data(const DATA& data)
         {
             cout<<"MAC::receive data error2"<<endl;
             exit(-3);
-            //                this->set_mac_busy();
-            //                this->to_send_coll=1;
-            //                this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
-            //                this->to_cwfix=1;
-            //                return;
         }
         
     }
@@ -757,7 +840,7 @@ void MAC::mac_receive_busytone(const DATA& data)
         if( (this->peer == data.source && this->m_adrress == data.destination))
         {
             if(this->mode==0)
-                this->mode=MODE_HD;
+            this->mode=MODE_HD;
         }
         else if(this->state==BFD_PT && this->to_send_coll ==0)
         {
@@ -776,6 +859,8 @@ void MAC::mac_receive_busytone(const DATA& data)
                 this->mac_generate_send_busytone_end_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
             }
             this->to_send_coll=1;
+            if(ST_CW_FIX)
+            this->to_cwfix=1;
             this->st_coll++;
             this->set_mac_busy();
             this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
@@ -821,6 +906,39 @@ void MAC::mac_receive_data_end(const DATA & data)
     {
         if(data.destination == this->m_adrress)
         {
+            this->neighbour[data.source-(1<<10)][2]=data.flag_moredata;
+            if(this->m_adrress > num_AP+(1<<10))
+            {
+                
+                if (CLIENT_BACKOFF_PATTERN==1)
+                {
+                    if (this->backoff_count > client_cw(data.flag_moredata))
+                    {
+                        if(FUMAC==0)
+                        {
+                            int AP_id=this->neighbour[1][0];
+                            if (this->neighbour[AP_id][2]==1)
+                            CoIFS=SIFS+2*SLOT;
+                            else if(this->neighbour[AP_id][2]==2)
+                            CoIFS=SIFS+1*SLOT;
+                            else
+                            CoIFS=SIFS;
+                        }
+                        this->backoff_count=random(client_cw(data.flag_moredata));
+                    }
+                }
+            }
+            else
+            {
+                if (AP_BACKOFF_PATTERN==1)
+                {
+                    if (this->backoff_count> AP_cw(data.flag_moredata))
+                    {
+                        this->backoff_count= random(AP_cw(data.flag_moredata));
+                    }
+                }
+            }
+            
             if(this->mode==MODE_FD && this->state==BFD_ST)
             {
                 ;
@@ -838,7 +956,6 @@ void MAC::mac_receive_data_end(const DATA & data)
                 cout<<"MAC:send data end error"<<endl;
                 exit(-1);
             }
-            
         }
         else
         {
@@ -882,14 +999,12 @@ void MAC::mac_receive_busytone_end(const DATA & data)
                 {
                     ;
                 }
-                
             }
             else
             {
                 cout<<"MAC:receive_busytone_end error"<<endl;
                 exit(-1);
             }
-            
         }
         else
         {
@@ -914,17 +1029,30 @@ void MAC::mac_receive_data_collision(const Event & event)
     }
     
     if(this->state==MAC_IDLE)
-        return;
+    return;
     else if(this->state==MAC_BUSY)
-        return;
+    return;
     else if ((this->state==BFD_PT || this->state==BFD_ST))
     {
         if(event.nodeid==(int)this->peer-(1<<10))
         {
             if(this->to_send_coll != 1){
+                if(this->state==BFD_PT)
+                {
+                    this->pt_coll++;
+                    this->pt_collsignal_coll++;
+                }
+                else if(this->state==BFD_ST)
+                {
+                    if(ST_CW_FIX)
+                    this->to_cwfix=1;
+                    this->st_coll++;
+                    this->st_collsignal_coll++;
+                }
                 this->set_mac_busy();
                 this->to_send_coll=1;
                 //                this->mac_generate_send_data_collision_event(SLOTS_TO_HANDLE_COLLISION * SLOT);
+                //                this->pt_coll++;
                 this->mac_generate_send_data_collision_event(0 * SLOT);
             }
         }
@@ -946,7 +1074,7 @@ void MAC::mac_receive_ack(const ACK & ack)
         return;
     }
     else if(this->state==MAC_BUSY)
-        return;
+    return;
     else if(this->state==BFD_ST|| this->state==BFD_PT)
     {
         if(this->m_adrress==ack.destination)
@@ -965,6 +1093,8 @@ void MAC::mac_receive_ack(const ACK & ack)
                 this->pt_coll++;
             }
             else if (this->state==BFD_ST){
+                if(ST_CW_FIX)
+                this->to_cwfix=1;
                 this->st_coll++;
             }
             this->set_mac_busy();
@@ -997,13 +1127,16 @@ void MAC::mac_receive_ack_end(const ACK & ack)
                 this->st_suc++;
             else if(state==BFD_PT)
                 this->pt_suc++;
-            this->CW=CWmin;
+            
+            if(!CLIENT_BACKOFF_PATTERN)
+                this->CW=CWmin;
+            
             this->mac_pop_data();
             if(this->mode==MODE_FD)
             {
                 ;
                 if(phy->tx_state == PHY_IDLE && phy->rx_state==PHY_IDLE)
-                    this->set_mac_busy();
+                this->set_mac_busy();
             }
             else if(this->mode== MODE_HD)
             {
@@ -1030,7 +1163,7 @@ void MAC::mac_receive_ack_collision(const Event & event)
             this->set_mac_busy();
         }
         else
-            return;
+        return;
     }
 }
 

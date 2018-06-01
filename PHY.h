@@ -39,6 +39,7 @@ private:
     // for more genral phy hearing check;
     unsigned long index1;// index to each neighbour nodes;
     unsigned long index2;
+    unsigned long index3;
 };
 
 
