@@ -12,22 +12,19 @@ void Simulator::run()
 {
     u_seconds endtime= ENDTIME;
     
-    int i=0;
-    int count=0;
+//    int i=0;
+//    int count=0;
     while(!this->sim_queue.empty())
     {
         Event tmp_event=this->sim_queue.top();
-        int x = tmp_event.t / Interval;
-//        if( STATISTIC && x > i  )
-        if(  x > i  )
-        {
-            count++;
-            i=x;
-//            cout<<"HERE"<<i<<" "<<x<<" "<<count<<endl;
-            Statistics* statistic;
-            statistic->record();
-//            cout<<endl;
-        }
+//        int x = tmp_event.t / Interval;
+//        if(  x > i  )
+//        {
+//            count++;
+//            i=x;
+//            Statistics* statistic;
+//            statistic->record();
+//        }
         if(tmp_event.t >= endtime)
             break;
         this->sim_queue.pop();

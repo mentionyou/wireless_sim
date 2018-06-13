@@ -21,17 +21,20 @@
 
 #define MAC_IDLE 0
 
+#define PT 1
 #define BFD_PT 11
 #define BFD_ST 12
 #define DBFD_PT 21 //simple——T
 #define DBFD_ST 22
 #define DBFD_SR 23
-#define SBFD_PT 31
-#define SBFD_ST 32
-#define SBFD_PR 33
+#define HD_PT 31
+#define HD_PR 32
+
+//#define SBFD_PT 31
+//#define SBFD_ST 32
+//#define SBFD_PR 33
 #define BUSYTONE 41
 #define MAC_BUSY 100
-
 
 #define MODE_HD  111
 #define MODE_FD  222
@@ -53,13 +56,13 @@ public:
     vector<DATA>::iterator iter;
     address m_adrress;
     int state;
-    int mode; // 0 IDLE; 1 HD;2 FD
-    address peer; // the node, expeceted to receive DATA from
-    address dst; // the node,  expeceted to receive ACK from
+//    int mode;     // 0 IDLE; 1 HD;2 FD
+    address peer; // the node,  expeceted to send ACK to
+    address dst;  // the node,  expeceted to receive ACK from
     
     int backoff_count;
-    int num_bour; //the size of neighbour[..][0]
-    int neighbour[size_of_Nodelist][5];
+//    int num_bour; //the size of neighbour[..][0]
+//    int neighbour[size_of_Nodelist][5];
     //[0], list, neighbour node id; for simplcity , i use the first num_bour，
     //[1], array,neighbour node traffic
     //[2], array, How many frame does the node have for me?
@@ -74,6 +77,7 @@ public:
     
     bool to_sim_coll;
     bool to_send_coll; //// a flag to indicate whether to send data/ack coll.
+    //// maybe change
     bool to_send_ack;  //// a flag to indicate when to send ack. '1' : sends ack after send data end. '0' :sends busytone after send
     bool to_busy;      //// a flag to set a node into MAC_BUSY mode.
     bool to_cwfix;     //// a flag to indicate cw not increase when collide.
@@ -92,7 +96,8 @@ public:
     
 public:
     bool have_data(address);
-    void mac_generate_data();
+    void mac_generate_data(int target);
+    void mac_push_data(DATA data);
     void mac_pop_data();
     void set_mac_busy();    
     
@@ -119,27 +124,46 @@ public:
 //    bool moredata(address);
     int up_traffic;
     int down_traffic;
+
 public:
     int pt_coll;//base on sense or, base on trigger signal?
-    int st_coll;
-    int pt_fd_op;
-    int pt_fd_suc;
-    int pt_suc;
-    int st_suc;
-    int pt_collsignal_coll;
-    int st_collsignal_coll;
     
-    u_seconds delay_sum;
-    int delay_count;
-    u_seconds delay_max;
+    int HD_pt_suc;
+    int HD_pt_coll;
+    int HD_pr_coll;
     
+    int BFD_pt_coll;
+    int BFD_pt_suc;
+    int BFD_st_coll;
+    int BFD_st_suc;
+    
+    int DBFD_pt_coll;
+    int DBFD_pt_suc;
+    int DBFD_st_coll;
+    int DBFD_st_suc;
+    int DBFD_sr_coll;
+    
+    
+    
+//    int pt_coll;
+//    int st_coll;
+//    int pt_fd_op;
+//    int pt_suc;
+//    int st_suc;
+//    int pt_collsignal_coll;
+//    int st_collsignal_coll;
+    
+//    u_seconds delay_sum;
+//    int delay_count;
+//    u_seconds delay_max;
+//    
     
 private:
     int CWmin=CWMIN;
     int CWmax=CWMAX;
-    int CWfd=CWFD;
+//    int CWfd=CWFD;
     int CW;
-    int CoIFS;
+//    int CoIFS;
 };
 
 class random_number

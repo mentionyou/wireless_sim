@@ -33,19 +33,20 @@ public:
     ~Node(){};
     
     int nodeid;   //node id
-    double x,y;      //location
-    int node_type;  //1 AP 2 client
+    double x,y;   //location
     u_seconds current_t;
-    int num_assocaition_node;
-    int num_interferation_node;
-    bool assocaition_node[size_of_Nodelist];
-    bool interferation_node[size_of_Nodelist];
-    int assocaition_AP_id;
+    
+    
+//    int  num_assocaition_node;
+//    int  num_interferation_node;
+//    bool assocaition_node[size_of_Nodelist];
+//    bool interferation_node[size_of_Nodelist];
     
     MAC  MAClayer;
     PHY  PHYlayer;
     Event next_sending_event;
     int node_state;
+    int target_node;
     
 public:
     void start(u_seconds t);//start at time(t)

@@ -15,7 +15,6 @@
 
 #define BASE_TRAFFIC 1000
 
-//#define PACKETS_IN_1_SECONDS  5
 class Traffic
 {
 public:

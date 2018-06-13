@@ -22,14 +22,8 @@ Node::Node()
     this->current_t=0;
     this->x=0;
     this->y=0;
-    this->node_type=0;
     this->MAClayer.node=this;
     this->PHYlayer.node=this;
-    this->num_assocaition_node=0;
-    this->num_interferation_node=0;
-    memset( this->assocaition_node,0,sizeof(this->assocaition_node));
-    memset( this->interferation_node,0,sizeof(this->interferation_node));
-    this->assocaition_AP_id=0;
 };
 
 //start
@@ -38,7 +32,8 @@ void Node::start(u_seconds t)
 {
     this->current_t=t;
     MAC* mac= &(this->MAClayer);
-    mac->mac_generate_inner_node_event();
+    if(mac->up_traffic!=0)
+        mac->mac_generate_inner_node_event();
     
 };
 
@@ -108,7 +103,8 @@ void Node::generate_data(const Event& event)
     this->current_t=event.t;
     MAC* mac=& (this->MAClayer);
     //    cout<<"Node::Node"<<nodeid<<" gen a DATA at "<<current_t<<endl;
-    mac->mac_generate_data();
+    
+    mac->mac_generate_data(this->target_node);
 }
 
 //////////////// event.type==Sending_data
@@ -128,7 +124,7 @@ DATA Node::send_data(const Event & event)
     mac->mac_send_data();
     DATA data=mac->get_data();
     if(TEST)
-        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" sends a DATA at "<<event.t<<"us to Node"<<data.destination-(1<<10) <<endl;
+        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" sends a DATA at "<<event.t<<"us to Node"<<data.receiver-(1<<10) <<endl;
     if(data.type==BUSYTONE)
     {
         cout<<"STOP!"<<endl;
@@ -176,7 +172,7 @@ void Node::receive_data(const Event & event, const DATA & data)
     mac->mac_receive_data(data);
     
     if(TEST)
-        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" receives a DATA at "<<event.t<<"s from Node"<<data.source-(1<<10) <<endl;
+        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" receives a DATA at "<<event.t<<"s from Node"<<data.sender-(1<<10) <<endl;
     
     return;
 };
@@ -198,7 +194,7 @@ DATA Node::send_data_end(const Event & event)
     mac->mac_send_data_end();
     DATA data=mac->get_data();
     if(TEST)
-        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" sends a DATA END at "<<event.t<<"us to Node"<<data.destination-(1<<10) <<endl;
+        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" sends a DATA END at "<<event.t<<"us to Node"<<data.receiver-(1<<10) <<endl;
     
     return data;
 };
@@ -220,7 +216,7 @@ void Node::receive_data_end(const Event & event,const DATA & data)
     phy->phy_receive_end(event);
     mac->mac_receive_data_end(data);
     if(TEST)
-        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" receives a DATA END at "<<event.t<<"s from Node"<<data.source-(1<<10) <<endl;
+        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" receives a DATA END at "<<event.t<<"s from Node"<<data.sender-(1<<10) <<endl;
     
     this->node_free();
     return;
@@ -291,7 +287,7 @@ ACK Node::send_ack(const Event & event)
     mac->mac_send_ack();
     ACK ack=mac->get_ack();
     if(TEST)
-        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" sends a ACK at "<<event.t<<"s to Node"<<ack.destination-(1<<10) <<endl;
+        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" sends a ACK at "<<event.t<<"s to Node"<<ack.receiver-(1<<10) <<endl;
     return ack;
 }
 
@@ -331,7 +327,7 @@ void Node::receive_ack(const Event& event, const ACK & ack)
     mac->mac_receive_ack(ack);
     
     if(TEST)
-        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" receives a ACK at "<<event.t<<"s to Node"<<ack.destination-(1<<10) <<endl;
+        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" receives a ACK at "<<event.t<<"s to Node"<<ack.receiver-(1<<10) <<endl;
     
     if(mac->state==MAC_BUSY && this->next_sending_event.t !=0)
     {
@@ -362,7 +358,7 @@ ACK Node::send_ack_end(const Event & event)
     phy->phy_send_end();
     mac->mac_send_ack_end();
     if(TEST)
-        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" sends a ACK END at "<<event.t<<"s to Node"<<ack.destination-(1<<10) <<endl;
+        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" sends a ACK END at "<<event.t<<"s to Node"<<ack.receiver-(1<<10) <<endl;
     this->node_free();
     return ack;
 }
@@ -383,7 +379,7 @@ void Node::receive_ack_end(const Event & event, const ACK& ack)
     phy->phy_receive_end(event);
     mac->mac_receive_ack_end(ack);
     if(TEST)
-        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" receives a ACK END at "<<event.t<<"s to Node"<<ack.destination-(1<<10) <<endl;
+        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" receives a ACK END at "<<event.t<<"s to Node"<<ack.receiver-(1<<10) <<endl;
     this->node_free();
 }
 
@@ -491,7 +487,7 @@ void Node::receive_busytone(const Event & event, const DATA & data)
     phy->phy_receive(event);
     mac->mac_receive_busytone(data);
     if(TEST)
-        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" receives a BUSYTONE at "<<event.t<<"s from Node"<<data.source-(1<<10) <<endl;
+        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" receives a BUSYTONE at "<<event.t<<"s from Node"<<data.sender-(1<<10) <<endl;
     
     return;
 };
@@ -533,143 +529,10 @@ void Node::receive_busytone_end(const Event & event,const DATA & data)
     mac->mac_receive_busytone_end(data);
     
     if(TEST)
-        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" receives a BUSYTONE END at "<<event.t<<"s from Node"<<data.source-(1<<10) <<endl;
+        cout<<"Node::Node"<< this->nodeid <<"("<<mac->state<<")" <<" receives a BUSYTONE END at "<<event.t<<"s from Node"<<data.sender-(1<<10) <<endl;
     this->node_free();
     return;
 };
 
-//void Node::generate_sending_data_event(u_seconds t)
-//{
-//    extern int unique_id;
-//    extern Simulator sim;
-//    Event event;
-//
-//    event.nodeid = this->nodeid;
-//    event.t=current_t+t;
-//    event.type=Sending_data;
-//    event.uid=unique_id;
-//    unique_id++;
-//    this->next_sending_event=event;
-//    sim.add(event);
-//};
-//
-//void Node::generate_sending_data_end_event(u_seconds t)
-//{
-//    extern int unique_id;
-//    extern Simulator sim;
-//    Event event;
-//
-//    event.nodeid = this->nodeid;
-//    event.t=current_t+t;
-//    event.type=Sending_data_end;
-//    event.uid=unique_id;
-//    unique_id++;
-//    this->next_sending_event=event;
-//    sim.add(event);
-//}
-//
-//void Node::generate_sending_data_collision_event(u_seconds t)
-//{
-//    extern int unique_id;
-//    extern Simulator sim;
-//    Event event;
-//
-//    event.nodeid = this->nodeid;
-//    event.t= this->current_t+ t;
-//    event.type=Sending_data_collision;
-//    event.uid=unique_id;
-//    unique_id++;
-//    this->next_sending_event=event;
-//    sim.add(event);
-//}
-//
-//void Node::generate_sending_ack_event(u_seconds t)
-//{
-//    extern int unique_id;
-//    extern Simulator sim;
-//    Event event;
-//
-//    event.nodeid = this->nodeid;
-//    event.t=current_t+t;
-//    event.type=Sending_ack;
-//    event.uid=unique_id;
-//    unique_id++;
-//    this->next_sending_event=event;
-//    sim.add(event);
-//}
-//
-//void Node::generate_sending_ack_end_event(u_seconds t)
-//{
-//    extern int unique_id;
-//    extern Simulator sim;
-//    Event event;
-//
-//    event.nodeid = this->nodeid;
-//    event.t=current_t+t;
-//    event.type=Sending_ack_end;
-//    event.uid=unique_id;
-//    unique_id++;
-//    this->next_sending_event=event;
-//    sim.add(event);
-//}
-//
-//void Node::generate_sending_ack_collision_event(u_seconds t)
-//{
-//    extern int unique_id;
-//    extern Simulator sim;
-//    Event event;
-//
-//    event.nodeid = this->nodeid;
-//    event.t=current_t+t;
-//    event.type=Sending_ack_collision;
-//    event.uid=unique_id;
-//    unique_id++;
-//    this->next_sending_event=event;
-//    sim.add(event);
-//}
-//
-//void Node::generate_inner_node_event(u_seconds t)
-//{
-//    extern int unique_id;
-//    extern Simulator sim;
-//    Event event;
-//
-//    event.nodeid = this->nodeid;
-//    event.t=current_t+t;
-//    event.type=Inner_node;
-//    event.uid=unique_id;
-//    unique_id++;
-//    sim.add(event);
-//}
-//
-//void Node::generate_sending_busytone_event(u_seconds t)
-//{
-//    extern int unique_id;
-//    extern Simulator sim;
-//    Event event;
-//
-//    event.nodeid = this->nodeid;
-//    event.t=current_t+t;
-//    event.type=Sending_busytone;
-//    event.uid=unique_id;
-//    unique_id++;
-//    this->next_sending_event=event;
-//    sim.add(event);
-//};
-//
-//void Node::generate_sending_busytone_end_event(u_seconds t)
-//{
-//    extern int unique_id;
-//    extern Simulator sim;
-//    Event event;
-//
-//    event.nodeid = this->nodeid;
-//    event.t=current_t+t;
-//    event.type=Sending_busytone_end;
-//    event.uid=unique_id;
-//    unique_id++;
-//    this->next_sending_event=event;
-//    sim.add(event);
-//};
 
 
