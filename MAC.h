@@ -73,13 +73,14 @@ public:
     
     void freeze(int);
     bool freeze_flag;   //// a flag indicate whether the mac freeze backoff count or not
-    bool busytone_flag; //// a flag indicate whether the node sends busytone or not
+//    bool busytone_flag; //// a flag indicate whether the node sends busytone or not
     
-    bool to_sim_coll;
-    bool to_send_coll; //// a flag to indicate whether to send data/ack coll.
+//    bool to_sim_coll;
+//    bool to_send_coll; //// a flag to indicate whether to send data/ack coll.
     //// maybe change
-    bool to_send_ack;  //// a flag to indicate when to send ack. '1' : sends ack after send data end. '0' :sends busytone after send
-    bool to_busy;      //// a flag to set a node into MAC_BUSY mode.
+//    bool to_send_ack;  //// a flag to indicate when to send ack. '1' : sends ack after send data end. '0' :sends busytone after send
+//    bool to_busy;      //// a flag to set a node into MAC_BUSY mode.
+    bool data_frame_complete; // whether the recieved frame is complete? only for DBFD_SR temporarily
     bool to_cwfix;     //// a flag to indicate cw not increase when collide.
     
 public:
@@ -93,6 +94,9 @@ public:
     void mac_generate_inner_node_event();
     void mac_generate_send_busytone_event(u_seconds);
     void mac_generate_send_busytone_end_event(u_seconds);
+    void mac_generate_check_event(u_seconds, int type);
+    
+
     
 public:
     bool have_data(address);
@@ -106,13 +110,13 @@ public:
     void mac_send_data_collision();
     void mac_send_ack();
     void mac_send_ack_end();
-    void mac_send_ack_collision();
+//    void mac_send_ack_collision();
     void mac_receive_data(const DATA&);
     void mac_receive_data_end(const DATA&);
     void mac_receive_data_collision(const Event&);
     void mac_receive_ack(const ACK &);
     void mac_receive_ack_end(const ACK &);
-    void mac_receive_ack_collision(const Event &);
+//    void mac_receive_ack_collision(const Event &);
     void sim_trans();
     DATA mac_send_busytone();
     void mac_receive_busytone(const DATA&);
@@ -126,7 +130,12 @@ public:
     int down_traffic;
 
 public:
-    int pt_coll;//base on sense or, base on trigger signal?
+//    int pt_coll;//base on sense or, base on trigger signal?
+    
+    int recv_suc;
+    int recv_drop;
+    
+    int PT_coll;
     
     int HD_pt_suc;
     int HD_pt_coll;
@@ -141,7 +150,7 @@ public:
     int DBFD_pt_suc;
     int DBFD_st_coll;
     int DBFD_st_suc;
-    int DBFD_sr_coll;
+//    int DBFD_sr_coll;
     
     
     

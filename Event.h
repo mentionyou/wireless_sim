@@ -17,10 +17,14 @@
 #define Sending_data_collision_event 300
 #define Sending_ack_event 400
 #define Sending_ack_end_event 500
-#define Sending_ack_collision_event 600
+//#define Sending_ack_collision_event 600
 #define Sending_busytone_event 700
 #define Sending_busytone_end_event 800
 #define Inner_node_event 900
+#define PT_send_check_event 1000
+#define PT_receive_check_event 1100
+#define ST_send_check_event 1200
+#define ST_receive_ack_check_event 1300
 #define u_seconds long
 
 // we treat end and collision as a kind of sending case.
@@ -37,7 +41,6 @@ public:
     u_seconds t;
     int nodeid;
     int type;
-
 };
 
 

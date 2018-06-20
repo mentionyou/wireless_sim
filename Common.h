@@ -20,18 +20,18 @@
 #define  AP_queue_manage 0 //未完整实现，保持0
 
 
-#define  size_of_Nodelist (5+1)// 4 equal to 3 node evaluated,(1AP+2Node)
+#define  size_of_Nodelist (10+1)// 4 equal to 3 node evaluated,(1AP+2Node)
 //#define  num_AP 2
-#define  num_client 5
+//#define  num_client 5
 
 
-#define  SLOTS_TO_HANDLE_COLLISION 5
-#define  QUEUE_SIZE 20
+#define  SLOTS_TO_HANDLE_COLLISION 1
+#define  QUEUE_SIZE 50
 #define  CWMIN 32
 #define  CWMAX 1024
 //#define  CWFD  512
 
-#define  ENDTIME pow(10,9)
+#define  ENDTIME pow(10,7)
 
 //802.11g 24mbps
 //96 bit per symbol, 4 us

@@ -34,6 +34,13 @@ public:
     
     void phy_send_end();
     void phy_receive_end(const Event&);
+    
+    bool phy_check_idle();
+    bool phy_only_receive_singal_from (int node_id);
+    bool phy_pt_send_check();
+    bool phy_st_send_check(int node_id);
+    bool phy_pt_receive_check( int node_id);
+    bool phy_st_receive_ack_check(int node_id);
 
 private:
     // for more genral phy hearing check;

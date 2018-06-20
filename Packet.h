@@ -30,7 +30,7 @@ struct DATA
 
 struct ACK
 {
-    address receiver=0;
+    address receiver=0; // the receiver of the  ACK
 };
 
 

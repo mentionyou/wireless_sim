@@ -81,3 +81,51 @@ void PHY::phy_receive_end(const Event & event)
         rx_state=PHY_IDLE;
 }
 
+bool PHY::phy_pt_send_check()
+{
+    if (index1==0 && index2==0)
+        return true;
+    return false;
+}
+
+bool PHY::phy_st_send_check(int node_id)
+{
+    return phy_only_receive_singal_from(node_id);
+}
+
+bool PHY::phy_pt_receive_check( int node_id)
+{
+    return phy_only_receive_singal_from(node_id);
+}
+
+bool PHY::phy_st_receive_ack_check(int node_id)
+{
+    return phy_only_receive_singal_from(node_id);
+}
+
+bool PHY::phy_only_receive_singal_from (int node_id)
+{
+    int id=node_id-1;
+    if(id<=63)
+    {
+        if( (index1 &  ((unsigned long) 1<<id )) == 0) // if node_id is not sending
+            return false;
+        if( (index1 & (~((unsigned long) 1<<id))) != 0) // if ohter nodes is sending
+            return false;
+        if( index2 !=0) // if ohter nodes is sending
+            return false;
+        return true;
+    }
+    else if(id<=127)
+    {
+        id = id-64;
+        if( (index2 &  ((unsigned long) 1<<id )) == 0) // node_id is not sending
+            return false;
+        if( (index2 & (~((unsigned long) 1<<id)))  != 0 ) // ohter nodes is sending
+            return false;
+        if( index1 !=0) // ohter nodes is sending
+            return false;
+        return true;
+    }
+    return true;
+}

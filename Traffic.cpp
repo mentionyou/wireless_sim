@@ -34,8 +34,8 @@ void Traffic::set_traffic()
         Nodelist[i].target_node=0;
     }
     
-    Nodelist[1].MAClayer.up_traffic = 100 * pow(10,3);
-    Nodelist[1].target_node=5;
-    Nodelist[5].MAClayer.up_traffic = 100 * pow(10,3);
-    Nodelist[5].target_node=1;
+    Nodelist[1].MAClayer.up_traffic = 500 * pow(10,3);
+    Nodelist[1].target_node=size_of_Nodelist-1;
+    Nodelist[size_of_Nodelist-1].MAClayer.up_traffic = 500 * pow(10,3);
+    Nodelist[size_of_Nodelist-1].target_node=1;
 }

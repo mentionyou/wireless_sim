@@ -54,15 +54,16 @@ public:
     // generate_events;
     void generate_a_case();
     void generate_event(u_seconds t, int type);
-    void generate_sending_data_event(u_seconds t); // here, t is the offest to the current_t
-    void generate_sending_data_end_event(u_seconds t);
-    void generate_sending_data_collision_event(u_seconds t);
-    void generate_sending_ack_event(u_seconds t);
-    void generate_sending_ack_end_event(u_seconds t);
-    void generate_sending_ack_collision_event(u_seconds t);
-    void generate_inner_node_event(u_seconds);
-    void generate_sending_busytone_event(u_seconds t);  
-    void generate_sending_busytone_end_event(u_seconds t);
+//    void generate_sending_data_event(u_seconds t); // here, t is the offest to the current_t
+//    void generate_sending_data_end_event(u_seconds t);
+//    void generate_sending_data_collision_event(u_seconds t);
+//    void generate_sending_ack_event(u_seconds t);
+//    void generate_sending_ack_end_event(u_seconds t);
+//    void generate_sending_ack_collision_event(u_seconds t);
+//    void generate_inner_node_event(u_seconds);
+//    void generate_sending_busytone_event(u_seconds t);  
+//    void generate_sending_busytone_end_event(u_seconds t);
+//    void generate_check_event (u_seconds t);
 
     //handle_events;
     
@@ -81,8 +82,9 @@ public:
     ACK send_ack_end(const Event &);
     void receive_ack_end(const Event &, const ACK &);
     
-    void send_ack_collision(const Event &);
-    void receive_ack_collision(const Event &);
+//    void send_ack_collision(const Event &);
+//    void receive_ack_collision(const Event &);
+    
     void generate_data(const Event&);
     void generate_data();
     
@@ -92,6 +94,11 @@ public:
     void receive_busytone_end(const Event&, const DATA& );
     
     void node_free();
+    void node_pt_send_check(const Event &); //send data check
+    void node_st_send_check(const Event &); //send data check
+    void node_pt_receive_check(const Event &); //send data check
+    void node_st_receive_ack_check(const Event &); //send ack check
+    
 
 };
 

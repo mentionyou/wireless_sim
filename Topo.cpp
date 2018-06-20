@@ -49,8 +49,8 @@ void Topo::set_topo()
     // 1->2->3->4->5
     for (int i=1; i< size_of_Nodelist ;i++)
     {
-        if (i!= num_client)
-            route_table[i][5]= i+1 +(1<<10);
+        if (i!= size_of_Nodelist-1)
+            route_table[i][size_of_Nodelist-1]= i+1 +(1<<10);
     }
     // 1<-2<-3<-4<-5
     for (int i=1; i< size_of_Nodelist ;i++)
